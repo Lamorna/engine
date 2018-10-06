@@ -7,7 +7,8 @@
 */
 void JIT_test(void) {
 
-	char* filename = "test.tgn";
+	//char* filename = "test.tgn";
+	char* filename;
 
 
 	FILE *file_handle;

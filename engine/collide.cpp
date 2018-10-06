@@ -3,9 +3,6 @@
 #include "vector_math.h"
 #include "model.h"
 
-
-// this is a test of	
-
 struct collider_data_ {
 
 	int3_ position;

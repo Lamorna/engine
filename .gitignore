@@ -262,3 +262,5 @@ __pycache__/
 /engine/models
 /engine/sounds
 /engine/textures
+/engine/UI
+/engine/boot_log.txt

@@ -143,7 +143,7 @@ static VM_INLINE  float3_ operator + (float3_ a, float3_ b){
 	result.z = a.z + b.z;
 	return result;
 }
-static inline float3_& operator += (float3_& a, float3_& b) {
+static inline float3_& operator += (float3_& a, const float3_& b) {
 	a = a + b;
 	return a;
 }

@@ -94,7 +94,7 @@ void systems_::collision_response_::projectile_vs_player(
 		component_::move_* move = (component_::move_*)Find_Archetype_Component(i_archetype, component_id_::MOVE, archetype_data);
 		component_::mass_* mass = (component_::mass_*)Find_Archetype_Component(i_archetype, component_id_::MASS, archetype_data);
 		//move[i_entity].velocity += collision_output.collider.velocity * (20.0f / mass[i_entity].value);
-		move[i_entity].velocity += collision_output.collider.velocity * 1.0f;
+		move[i_entity].velocity += collision_output.collider.velocity;
 	}
 	{
 		component_::animation_driver_* animation_driver = (component_::animation_driver_*)Find_Archetype_Component(i_archetype, component_id_::ANIMATION_DRIVER, archetype_data);

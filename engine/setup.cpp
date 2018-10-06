@@ -632,7 +632,9 @@ void Static_Initialise_Data(
 			const float velocity_scale = 4.0f;
 
 			for (__int32 i_particle = 0; i_particle < particle_manager_::NUM_PARTICLES_PER_EMITTER; i_particle++) {
-				velocity[i_particle] -= extent * 0.5f;
+				//velocity[i_particle] -= extent * 0.5f;
+				float3_ half_extent = extent * 0.5f;
+				velocity[i_particle] -= half_extent;
 				velocity[i_particle] *= velocity_scale;
 			}
 
@@ -671,7 +673,8 @@ void Static_Initialise_Data(
 			position[15] = position[11] + z_offset;
 
 			for (__int32 i_particle = 0; i_particle < particle_manager_::NUM_PARTICLES_PER_EMITTER; i_particle++) {
-				position[i_particle] -= extent * 0.5f;
+				float3_ half_extent = extent * 0.5f;
+				position[i_particle] -= half_extent;
 			}
 
 			for (__int32 i_particle = 0; i_particle < particle_manager_::NUM_PARTICLES_PER_EMITTER; i_particle++) {
