@@ -115,6 +115,68 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="archetype.h" />
+    <ClInclude Include="collide.h" />
+    <ClInclude Include="command.h" />
+    <ClInclude Include="component.h" />
+    <ClInclude Include="entity.h" />
+    <ClInclude Include="environment.h" />
+    <ClInclude Include="frame.h" />
+    <ClInclude Include="input.h" />
+    <ClInclude Include="items.h" />
+    <ClInclude Include="light_maps.h" />
+    <ClInclude Include="master.h" />
+    <ClInclude Include="memory.h" />
+    <ClInclude Include="model.h" />
+    <ClInclude Include="monster.h" />
+    <ClInclude Include="obj_reader.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="quake.h" />
+    <ClInclude Include="raster.h" />
+    <ClInclude Include="render_back.h" />
+    <ClInclude Include="render_front.h" />
+    <ClInclude Include="setup.h" />
+    <ClInclude Include="shader.h" />
+    <ClInclude Include="sound.h" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="string.h" />
+    <ClInclude Include="texture.h" />
+    <ClInclude Include="threads.h" />
+    <ClInclude Include="update.h" />
+    <ClInclude Include="vector.h" />
+    <ClInclude Include="vector_math.h" />
+    <ClInclude Include="windows.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="archetype.cpp" />
+    <ClCompile Include="collide.cpp" />
+    <ClCompile Include="command.cpp" />
+    <ClCompile Include="component.cpp" />
+    <ClCompile Include="entity.cpp" />
+    <ClCompile Include="environment.cpp" />
+    <ClCompile Include="frame.cpp" />
+    <ClCompile Include="input.cpp" />
+    <ClCompile Include="items.cpp" />
+    <ClCompile Include="JIT.cpp" />
+    <ClCompile Include="light_maps.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="model.cpp" />
+    <ClCompile Include="monster.cpp" />
+    <ClCompile Include="obj_reader.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="quake.cpp" />
+    <ClCompile Include="raster.cpp" />
+    <ClCompile Include="render_back.cpp" />
+    <ClCompile Include="render_front.cpp" />
+    <ClCompile Include="setup.cpp" />
+    <ClCompile Include="shader.cpp" />
+    <ClCompile Include="sound.cpp" />
+    <ClCompile Include="string.cpp" />
+    <ClCompile Include="texture.cpp" />
+    <ClCompile Include="threads.cpp" />
+    <ClCompile Include="update.cpp" />
+    <ClCompile Include="vector_math.cpp" />
+    <ClCompile Include="windows.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
