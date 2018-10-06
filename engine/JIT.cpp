@@ -7,9 +7,7 @@
 */
 void JIT_test(void) {
 
-	//char* filename = "test.tgn";
-	char* filename;
-
+	char filename[] = "test.tgn";
 
 	FILE *file_handle;
 	fopen_s(&file_handle, filename, "rb");		// txt mode
