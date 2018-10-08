@@ -27,6 +27,32 @@ struct lightmap_manager_ {
 		MAX_ACTIVE_MODELS = 128,
 	};
 
+	struct bvh_ {
+
+		struct lit_model_data_ {
+
+			__int32 i_model;
+			__int32 i_node;
+			__int32 i_start;
+			__int32 n_models;
+		};
+
+		enum {
+
+			MAX_LIT_MODELS = 16,
+			MAX_LIGHT_MODELS = 256,
+		};
+
+		__int32 n_lit_models;
+		lit_model_data_ lit_model_data[MAX_LIT_MODELS];
+		//__int32 i_lit_models[MAX_LIT_MODELS];
+		//__int32 i_lit_model_nodes[MAX_LIT_MODELS];
+		//__int32 i_light_models[MAX_LIT_MODELS][MAX_LIGHT_MODELS];
+		//__int32 n_light_models[MAX_LIT_MODELS];
+
+		__int32 i_light_models[MAX_LIGHT_MODELS];
+	};
+
 	struct model_node_ {
 
 		enum {
@@ -43,6 +69,7 @@ struct lightmap_manager_ {
 		__int32 i_model_node[MAX_ACTIVE_MODELS];
 	};
 
+	bvh_ bvh;
 	grid_* grid_TEMP;
 
 	__int32 n_model_nodes[grid_::NUM_NODES + 1];
@@ -114,6 +141,7 @@ void Allocate_Memory_Lightmaps(
 
 struct systems_::lightmap_ {
 
+	static void process_BVH(void*, __int32);
 	static void process_lightmaps(void*, __int32);
 	static void fade_lightmaps(void*, __int32);
 	static void buffer_swap(void*, __int32);
@@ -128,14 +156,17 @@ struct parameters_::lightmap_ {
 
 	struct process_lightmaps_ {
 
-		__int32 i_begin;
-		__int32 n_entities;
-		const archetype_data_* archetype_data;
+		__int32 i_lit_model_index;
 		const command_buffer_handler_* command_buffer_handler;
 		lightmap_manager_* lightmap_manager;
 		model_manager_* model_manager;
 		model_* model_spotlight;
-		model_token_manager_* model_token_manager;
+	};
+	struct process_BVH_ {
+
+		const command_buffer_handler_* command_buffer_handler;
+		lightmap_manager_* lightmap_manager;
+		grid_* grid;
 	};
 	struct fade_lightmaps_ {
 
@@ -150,6 +181,7 @@ struct parameters_::lightmap_ {
 		model_manager_* model_manager;
 	};
 
+	process_BVH_ process_BVH;
 	process_lightmaps_ process_lightmaps[MAX_BATCHES];
 	fade_lightmaps_ fade_lightmaps;
 	buffer_swap_ buffer_swap;

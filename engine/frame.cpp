@@ -79,6 +79,7 @@ void Load_Frame_Jobs(
 				SOUND,
 				COMMAND_BUFFER_POPULATE,
 				RENDER_FRONT_END,
+				LIGHTMAP_BVH,
 				LIGHTMAP_GENERATION,
 				LIGHTMAP_BUFFER_SWAP,
 				LOCK_BACK_BUFFER,
@@ -669,6 +670,21 @@ void Load_Frame_Jobs(
 	}
 	// -------------------------------------------------------------------------------
 	//
+	//		LIGHTMAP BVH
+	//
+	// -------------------------------------------------------------------------------
+	{
+		lightmap.process_BVH.command_buffer_handler = &command_buffer_handler;
+		lightmap.process_BVH.lightmap_manager = &lightmap_manager;
+		lightmap.process_BVH.grid = &grid;
+
+		jobs[n_jobs].type = job_group_::id_::LIGHTMAP_BVH;
+		jobs[n_jobs].parameters = (void*)&lightmap.process_BVH;
+		jobs[n_jobs].function = systems_::lightmap_::process_BVH;
+		n_jobs++;
+	}
+	// -------------------------------------------------------------------------------
+	//
 	//		LIGHTMAP GENERATION
 	//
 	// -------------------------------------------------------------------------------
@@ -683,18 +699,16 @@ void Load_Frame_Jobs(
 
 		const __int32 n_per_batch = fetch.n_entities / thread_pool.n_threads;
 		__int32 i_job_local = 0;
-		for (__int32 i_batch = 0; i_batch < fetch.n_entities; i_batch += n_per_batch) {
+		//for (__int32 i_batch = 0; i_batch < fetch.n_entities; i_batch += n_per_batch) {
+		for (__int32 i_batch = 0; i_batch < lightmap_manager_::bvh_::MAX_LIT_MODELS; i_batch++) {
 
 			__int32 n_entities = min(fetch.n_entities - i_batch, n_per_batch);
 
-			lightmap.process_lightmaps[i_job_local].i_begin = i_batch;
-			lightmap.process_lightmaps[i_job_local].n_entities = n_entities;
-			lightmap.process_lightmaps[i_job_local].archetype_data = &component_data.archetype_data;
+			lightmap.process_lightmaps[i_job_local].i_lit_model_index = i_batch;
 			lightmap.process_lightmaps[i_job_local].command_buffer_handler = &command_buffer_handler;
 			lightmap.process_lightmaps[i_job_local].lightmap_manager = &lightmap_manager;
 			lightmap.process_lightmaps[i_job_local].model_manager = &model_manager;
 			lightmap.process_lightmaps[i_job_local].model_spotlight = &model_manager.model[model_::id_::SPOTLIGHT];
-			lightmap.process_lightmaps[i_job_local].model_token_manager = &model_token_manager;
 
 			jobs[n_jobs].type = job_group_::id_::LIGHTMAP_GENERATION;
 			jobs[n_jobs].parameters = (void*)&lightmap.process_lightmaps[i_job_local];
@@ -879,6 +893,12 @@ void Load_Frame_Jobs(
 		job_groups[i_job_group].i_permissions[1] = job_group_::id_::COMMAND_BUFFER_SWAP;
 	}
 	// -------------------------------------------------------------------------------
+	{
+		const __int32 i_job_group = job_group_::id_::LIGHTMAP_BVH;
+		job_groups[i_job_group].is_concurrent = false;
+		job_groups[i_job_group].n_permisions = 1;
+		job_groups[i_job_group].i_permissions[0] = job_group_::id_::LIGHTMAP_GENERATION;
+	}
 	{
 		const __int32 i_job_group = job_group_::id_::LIGHTMAP_GENERATION;
 		job_groups[i_job_group].is_concurrent = true;

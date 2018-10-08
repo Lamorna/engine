@@ -550,161 +550,244 @@ void Process_Lightmap_Bin(
 ==================
 ==================
 */
+void systems_::lightmap_::process_BVH(
+
+	void* parameters, __int32 i_thread
+)
+{
+	parameters_::lightmap_::process_BVH_* func_parameters = (parameters_::lightmap_::process_BVH_*)parameters;
+	const command_buffer_handler_& command_buffer_handler = *func_parameters->command_buffer_handler;
+	const grid_& grid = *func_parameters->grid;
+	lightmap_manager_& lightmap_manager = *func_parameters->lightmap_manager;
+
+	const command_buffer_& command_buffer = command_buffer_handler.command_buffers[command_buffer_handler.i_read];
+	const __int32 light_extent_fixed = (__int32)(light_extent * fixed_scale_real);
+
+	struct valid_data_ {
+
+		__int32 n_entries;
+		__int32 i_node[lightmap_manager_::bvh_::MAX_LIGHT_MODELS];
+		__int32 i_lit_model[lightmap_manager_::bvh_::MAX_LIGHT_MODELS];
+		__int32 i_light_model[lightmap_manager_::bvh_::MAX_LIGHT_MODELS];
+	};
+
+	valid_data_ data;
+	data.n_entries = 0;
+
+	{
+		const __int32 n_light_models = command_buffer.n_lightmap_lights;
+		const __m128i indices_inc = set_all(4);
+
+		for (__int32 i_light_model = 0; i_light_model < n_light_models; i_light_model++) {
+
+			__m128i light_centre[4];
+			__m128i light_extent[4];
+			for (__int32 i_axis = X; i_axis < W; i_axis++) {
+				light_centre[i_axis] = set_all(command_buffer.lightmap_lights[i_light_model].position.i[i_axis]);
+				light_extent[i_axis] = set_all(light_extent_fixed);
+			}
+
+			__int32 n_valid_nodes = 0;
+			__int32 i_valid_nodes[grid_::NUM_NODES];
+
+			{
+				__m128i indices = set(0, 1, 2, 3);
+
+				for (__int32 i_node_4 = 0; i_node_4 < grid_::NUM_NODES; i_node_4 += 4) {
+
+					__int32 n = min(grid_::NUM_NODES - i_node_4, 4);
+
+					__m128i node_position[4];
+					__m128i node_extent[4];
+					unsigned __int32 valid_mask = 0x0;
+					for (__int32 i_node = 0; i_node < n; i_node++) {
+
+						valid_mask |= 0x1 << i_node;
+						node_position[i_node] = load_u(grid.nodes[i_node_4 + i_node].map.centre.i);
+						node_extent[i_node] = load_u(grid.nodes[i_node_4 + i_node].map.extent.i);
+					}
+					Transpose(node_position);
+					Transpose(node_extent);
+
+					__m128i result = set_all(-1);
+					for (__int32 i_axis = X; i_axis < W; i_axis++) {
+
+						__m128i delta = abs(light_centre[i_axis] - node_position[i_axis]);
+						__m128i extent = light_extent[i_axis] + node_extent[i_axis];
+						result &= delta < extent;
+					}
+
+					unsigned __int32 pack_mask = store_mask(result) & valid_mask;
+					__m128i packed_indices = Pack_Vector4(indices, pack_mask);
+					store_u(packed_indices, i_valid_nodes + n_valid_nodes);
+					n_valid_nodes += __popcnt(pack_mask);
+					indices += indices_inc;
+				}
+			}
+			{
+				const __m128i i_light_model_4 = set_all(i_light_model);
+
+				for (__int32 i_valid_node = 0; i_valid_node < n_valid_nodes; i_valid_node++) {
+
+					const __int32 i_node = i_valid_nodes[i_valid_node];
+					const __int32 n_lit_models = grid.nodes[i_node].map.n_entries;
+					const __m128i i_node_4 = set_all(i_node);
+					__m128i indices = set(0, 1, 2, 3);
+
+					for (__int32 i_lit_model_4 = 0; i_lit_model_4 < n_lit_models; i_lit_model_4 += 4) {
+
+						__int32 n = min(n_lit_models - i_lit_model_4, 4);
+
+						__m128i lit_centre[4];
+						__m128i lit_extent[4];
+						unsigned __int32 loop_mask = 0x0;
+						for (__int32 i_lit_model = 0; i_lit_model < n; i_lit_model++) {
+							__int32 index = grid.nodes[i_node].indices[i_lit_model_4 + i_lit_model];
+							loop_mask |= 0x1 << i_lit_model;
+							lit_centre[i_lit_model] = load_u(grid.centre[index].i);
+							lit_extent[i_lit_model] = load_u(grid.extent[index].i);
+						}
+						Transpose(lit_centre);
+						Transpose(lit_extent);
+
+						__m128i result = set_all(-1);
+						for (__int32 i_axis = X; i_axis < W; i_axis++) {
+							__m128i delta = abs(lit_centre[i_axis] - light_centre[i_axis]);
+							__m128i extent = lit_extent[i_axis] + light_extent[i_axis];
+							result &= delta < extent;
+						}
+
+						unsigned __int32 pack_mask = store_mask(result) & loop_mask;
+						__m128i packed_indices = Pack_Vector4(indices, pack_mask);
+						store_u(packed_indices, data.i_lit_model + data.n_entries);
+						store_u(i_light_model_4, data.i_light_model + data.n_entries);
+						store_u(i_node_4, data.i_node + data.n_entries);
+						data.n_entries += __popcnt(pack_mask);
+
+						indices += indices_inc;
+					}
+				}
+			}
+		}
+	}
+	{
+		for (__int32 i_sort = 0; i_sort < data.n_entries; i_sort++) {
+
+			__int32 min = INT_MAX;
+			__int32 i_min = -1;
+			for (__int32 i_iterate = i_sort; i_iterate < data.n_entries; i_iterate++) {
+				bool is_less = data.i_lit_model[i_iterate] < min;
+				i_min = is_less ? i_iterate : i_min;
+				min = is_less ? data.i_lit_model[i_iterate] : min;
+			}
+
+			__int32 swap[3];
+			swap[0] = data.i_node[i_sort];
+			swap[1] = data.i_light_model[i_sort];
+			swap[2] = data.i_lit_model[i_sort];
+
+			data.i_node[i_sort] = data.i_node[i_min];
+			data.i_light_model[i_sort] = data.i_light_model[i_min];
+			data.i_lit_model[i_sort] = data.i_lit_model[i_min];
+
+			data.i_node[i_min] = swap[0];
+			data.i_light_model[i_min] = swap[1];
+			data.i_lit_model[i_min] = swap[2];
+		}
+	}
+	{
+
+		lightmap_manager_::bvh_& bvh = lightmap_manager.bvh;
+
+		__int32 i_current_lit = -1;
+		bvh.n_lit_models = -1;
+		__int32 n_light_models = 0;
+
+		for (__int32 i_entry = 0; i_entry < data.n_entries; i_entry++) {
+
+			bool is_next_lit = data.i_lit_model[i_entry] != i_current_lit;
+			bvh.n_lit_models += is_next_lit;
+			bvh.n_lit_models = min(bvh.n_lit_models, lightmap_manager_::bvh_::MAX_LIT_MODELS);
+			i_current_lit = is_next_lit ? data.i_lit_model[i_entry] : i_current_lit;
+			bvh.lit_model_data[bvh.n_lit_models].i_start = is_next_lit ? n_light_models : bvh.lit_model_data[bvh.n_lit_models].i_start;
+			bvh.lit_model_data[bvh.n_lit_models].n_models = is_next_lit ? 0 : bvh.lit_model_data[bvh.n_lit_models].n_models;
+
+			bvh.lit_model_data[bvh.n_lit_models].i_node = data.i_node[i_entry];
+			bvh.lit_model_data[bvh.n_lit_models].i_model = data.i_lit_model[i_entry];
+			bvh.i_light_models[n_light_models] = data.i_light_model[i_entry];
+			n_light_models++;
+			bvh.lit_model_data[bvh.n_lit_models].n_models++;
+			n_light_models = min(n_light_models, lightmap_manager_::bvh_::MAX_LIGHT_MODELS);
+		}
+
+		//for (__int32 i_lit_model = 0; i_lit_model < bvh.n_lit_models; i_lit_model++) {
+
+		//	printf_s(" %i | ", bvh.i_lit_models[i_lit_model]);
+		//	printf_s(" %i : ", bvh.i_lit_model_nodes[i_lit_model]);
+
+		//	for (__int32 i_light_model = 0; i_light_model < bvh.n_light_models[i_lit_model]; i_light_model++) {
+		//		printf_s(" %i ,", bvh.i_light_models[i_lit_model][i_light_model]);
+		//	}
+
+		//	printf_s(" \n");
+		//}
+		//printf_s(" \n");
+	}
+}
+
+/*
+==================
+==================
+*/
 void systems_::lightmap_::process_lightmaps(
 
 	void* parameters, __int32 i_thread
 )
 {
 	parameters_::lightmap_::process_lightmaps_* func_parameters = (parameters_::lightmap_::process_lightmaps_*)parameters;
-	const __int32 i_begin = func_parameters->i_begin;
-	const __int32 n_entities = func_parameters->n_entities;
-	const archetype_data_& archetype_data = *func_parameters->archetype_data;
+	const __int32 i_lit_model_index = func_parameters->i_lit_model_index;
 	const command_buffer_handler_& command_buffer_handler = *func_parameters->command_buffer_handler;
 	lightmap_manager_& lightmap_manager = *func_parameters->lightmap_manager;
 	model_manager_& model_manager = *func_parameters->model_manager;
 	model_& model_spotlight = *func_parameters->model_spotlight;
-	model_token_manager_& model_token_manager = *func_parameters->model_token_manager;
 
 	const command_buffer_& command_buffer = command_buffer_handler.command_buffers[command_buffer_handler.i_read];
-	const __int32 light_extent_fixed = (__int32)(light_extent * fixed_scale_real);
+	lightmap_manager_::bvh_& bvh = lightmap_manager.bvh;
 
-	for (__int32 i_lit_model = 0; i_lit_model < n_entities; i_lit_model++) {
+	const __int32 n_light_models = bvh.lit_model_data[i_lit_model_index].n_models;
 
-		const __int32 i_node = lightmap_manager.map_nodes_TEMP[i_begin + i_lit_model];
-		const __int32 i_node_model = lightmap_manager.map_models_TEMP[i_begin + i_lit_model];
-
-		model_token_& model_token = model_token_manager.model_tokens[model_token_::id_::MAP + i_node + 1];
-		model_& model = model_manager.model[model_::id_::MAP + i_node + 1];
-		int3_ node_position = lightmap_manager.grid_TEMP->nodes[i_node].map.centre;
-
-		lightmap_bin_ lightmap_bin;
-		lightmap_bin.n_light_sources = 0;
-		lightmap_bin.i_node = i_node;
-		lightmap_bin.i_model_node = i_node_model;
-
-		for (__int32 i_light_model = 0; i_light_model < command_buffer.n_lightmap_lights; i_light_model++) {
-
-			unsigned __int32 bit_mask = 0x1;
-			for (__int32 i_axis = X; i_axis < W; i_axis++) {
-
-				__int32 world_position = model_token.centre[i_node_model].i[i_axis] + node_position.i[i_axis];
-				__int32 d = abs(command_buffer.lightmap_lights[i_light_model].position.i[i_axis] - world_position);
-				bit_mask &= d < (model_token.extent[i_node_model].i[i_axis] + light_extent_fixed);
-			}
-
-			bool is_valid = bit_mask != 0x0;
-			lightmap_bin.i_light_sources[lightmap_bin.n_light_sources] = i_light_model;
-			lightmap_bin.n_light_sources += is_valid;
-		}
-
-		if (lightmap_bin.n_light_sources > 0) {
-
-			Process_Lightmap_Bin(
-
-				i_thread,
-				command_buffer,
-				lightmap_bin,
-				model_spotlight,
-				lightmap_manager,
-				model
-			);
-		}
+	if (n_light_models == 0) {
+		return;
 	}
+
+	const __int32 i_node = bvh.lit_model_data[i_lit_model_index].i_node;
+	const __int32 i_lit_model = bvh.lit_model_data[i_lit_model_index].i_model;
+
+	model_& model = model_manager.model[model_::id_::MAP + i_node + 1];
+
+	lightmap_bin_ lightmap_bin;
+	lightmap_bin.i_node = i_node;
+	lightmap_bin.i_model_node = i_lit_model;
+	lightmap_bin.n_light_sources = 0;
+
+	const __int32 i_start = bvh.lit_model_data[i_lit_model_index].i_start;
+	const __int32 i_end = i_start + n_light_models;
+
+	for (__int32 i_light_model_index = i_start; i_light_model_index < i_end; i_light_model_index++) {
+		lightmap_bin.i_light_sources[lightmap_bin.n_light_sources] = bvh.i_light_models[i_light_model_index];
+		lightmap_bin.n_light_sources++;
+	}
+
+	Process_Lightmap_Bin(
+
+		i_thread,
+		command_buffer,
+		lightmap_bin,
+		model_spotlight,
+		lightmap_manager,
+		model
+	);
 }
-
-
-///*
-//==================
-//==================
-//*/
-//void systems_::lightmap_::process_lightmaps(
-//
-//	void* parameters, __int32 i_thread
-//)
-//{
-//	parameters_::lightmap_::process_lightmaps_* func_parameters = (parameters_::lightmap_::process_lightmaps_*)parameters;
-//	const __int32 i_begin = func_parameters->i_begin;
-//	const __int32 n_entities = func_parameters->n_entities;
-//	const archetype_data_& archetype_data = *func_parameters->archetype_data;
-//	const command_buffer_handler_& command_buffer_handler = *func_parameters->command_buffer_handler;
-//	lightmap_manager_& lightmap_manager = *func_parameters->lightmap_manager;
-//	model_& model_map = *func_parameters->model_map;
-//	model_& model_spotlight = *func_parameters->model_spotlight;
-//
-//	const command_buffer_& command_buffer = command_buffer_handler.command_buffers[command_buffer_handler.i_read];
-//	const __int32 light_extent_fixed = (__int32)(light_extent * fixed_scale_real);
-//
-//	component_fetch_ fetch;
-//	fetch.n_components = 3;
-//	fetch.n_excludes = 0;
-//	fetch.component_ids[0] = component_id_::BASE;
-//	fetch.component_ids[1] = component_id_::COLLIDEE_STATIC;
-//	fetch.component_ids[2] = component_id_::MAP_COLLIDE;
-//
-//	Populate_Fetch_Table(archetype_data, fetch);
-//
-//	__int32 i_archetype_index = 0;
-//	__int32 i_entity = 0;
-//	__int32 entity_count = 0;
-//
-//	for (__int32 i_element = 0; i_element < fetch.n_archetypes; i_element++) {
-//
-//		const __int32 i_archetype = fetch.i_archetypes[i_element];
-//		const archetype_& archetype = archetype_data.archetypes[i_archetype];
-//		i_entity = i_begin - entity_count;
-//
-//		if (i_entity < archetype.n_entities) {
-//			break;
-//		}
-//
-//		entity_count += archetype.n_entities;
-//		i_archetype_index++;
-//	}
-//
-//	for (__int32 i_lit_model = 0; i_lit_model < n_entities; i_lit_model++) {
-//
-//		const __int32 i_archetype = fetch.i_archetypes[i_archetype_index];
-//		const archetype_& archetype = archetype_data.archetypes[i_archetype];
-//		component_::base_* base = (component_::base_*)fetch.table[0][i_archetype_index];
-//		component_::collidee_static_* collidee = (component_::collidee_static_*)fetch.table[1][i_archetype_index];
-//
-//		lightmap_bin_ lightmap_bin;
-//		lightmap_bin.n_light_sources = 0;
-//		lightmap_bin.i_model_node = i_entity;
-//
-//		for (__int32 i_light_model = 0; i_light_model < command_buffer.n_lights; i_light_model++) {
-//
-//			unsigned __int32 bit_mask = 0x1;
-//			for (__int32 i_axis = X; i_axis < W; i_axis++) {
-//
-//				__int32 d = abs(command_buffer.lights[i_light_model].position.i[i_axis] - base[i_entity].position_fixed.i[i_axis]);
-//				bit_mask &= d < (collidee[i_entity].extent.i[i_axis] + light_extent_fixed);
-//			}
-//
-//			bool is_valid = bit_mask != 0x0;
-//			lightmap_bin.i_light_sources[lightmap_bin.n_light_sources] = i_light_model;
-//			lightmap_bin.n_light_sources += is_valid;
-//		}
-//
-//		if (lightmap_bin.n_light_sources > 0) {
-//
-//			Process_Lightmap_Bin(
-//
-//				i_thread,
-//				command_buffer,
-//				lightmap_bin,
-//				model_spotlight,
-//				lightmap_manager,
-//				model_map
-//			);
-//		}
-//
-//		i_entity++;
-//		bool is_next_archetype = i_entity == archetype.n_entities;
-//		i_archetype_index += is_next_archetype;
-//		i_entity = blend_int(0, i_entity, is_next_archetype);
-//	}
-//}
 
 /*
 ==================

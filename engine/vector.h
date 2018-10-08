@@ -41,7 +41,7 @@ static const float r_fixed_scale_real = 1.0f / fixed_scale_real;
 
 
 
-enum lamorna {
+enum lamorna_ {
 
 	VERTEX_POSITION,
 	FIRST_ATTRIBUTE,
