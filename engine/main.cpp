@@ -39,7 +39,7 @@ struct game_data_ {
 	map_validate map_validate;
 
 	display_ display;
-	CACHE_ALIGN_PROPER visibility_data_ visibility_data[thread_pool_::MAX_WORKER_THREADS];
+	//CACHE_ALIGN_PROPER visibility_data_ visibility_data[thread_pool_::MAX_WORKER_THREADS];
 	game_matrices_ game_matrices;
 	timer_ timer;
 	user_input_ user_input;
@@ -106,6 +106,25 @@ void Lamorna_Setup(
 
 	Initialise_Sound(game_data.sound_system.direct_sound, game_data.sound_system.sound_buffer, game_data.sound_system.sound_mixer);
 
+	{
+		for (__int32 i_thread = 0; i_thread < thread_pool_::MAX_WORKER_THREADS; i_thread++) {
+			for (__int32 bin_y = 0; bin_y < display_::N_BINS_Y; bin_y++) {
+				for (__int32 bin_x = 0; bin_x < display_::N_BINS_X; bin_x++) {
+
+					screen_bin_& bin = game_data.display.screen_bin[i_thread][bin_y][bin_x];
+
+					for (__int32 i_draw_call = 0; i_draw_call < draw_call_::id_::COUNT; i_draw_call++) {
+						bin.draw_id[i_draw_call] = -1;
+						bin.n_tris[i_draw_call] = 0;
+					}
+
+					bin.n_draw_calls = -1;
+					bin.n_triangles = 0;
+				}
+			}
+		}
+	}
+
 	Initialise_Systems(
 
 		game_data.sound_system.sound_event_table,
@@ -142,7 +161,6 @@ void Lamorna_Setup(
 		game_data.particle_manager,
 		game_data.collision_manager,
 		game_data.lightmap_manager,
-		game_data.visibility_data,
 		game_data.component_data,
 		game_data.frame_jobs,
 		game_data.thread_pool,

@@ -30,7 +30,6 @@ struct systems_::collision_response_;
 struct particle_manager_;
 struct collision_manager_;
 struct lightmap_manager_;
-struct visibility_data_;
 struct component_data_;
 struct frame_jobs_;
 struct thread_pool_;
@@ -54,7 +53,6 @@ void Load_Frame_Jobs(
 	particle_manager_&,
 	collision_manager_&,
 	lightmap_manager_&,
-	visibility_data_*,
 	component_data_&,
 	frame_jobs_&,
 	thread_pool_&,

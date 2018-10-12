@@ -484,6 +484,7 @@ void Hardcode_Cube_Template(
 			memory.chunk_ptr = cube.texture_handlers + cube.n_textures;
 
 			Load_Image_STB("textures/floor.jpg", cube.texture_handlers[0], memory);
+			//Load_Image_STB("textures/stone.png", cube.texture_handlers[0], memory);
 
 			cube.i_textures = (__int32**)memory.chunk_ptr;
 			memory.chunk_ptr = cube.i_textures + cube.n_texture_layers;

@@ -347,7 +347,13 @@ void Process_Triangle_Batch(
 							bin.bin_triangle[bin.n_triangles].barycentric[i_vertex].y = triangle_batch.buffer[i_triangle_read][i_vertex].barycentric.y;
 							bin.bin_triangle[bin.n_triangles].barycentric[i_vertex].z = triangle_batch.buffer[i_triangle_read][i_vertex].barycentric.z;
 						}
-						bin.n_triangles += (write_mask >> i_triangle) & 0x1;
+
+						__int32 draw_id = triangle_batch.triangle_data[i_triangle_read].draw_id;
+						bin.n_draw_calls += bin.draw_id[bin.n_draw_calls] != draw_id;
+						bin.draw_id[bin.n_draw_calls] = draw_id;
+						__int32 increment = (write_mask >> i_triangle) & 0x1;
+						bin.n_triangles += increment;
+						bin.n_tris[bin.n_draw_calls] += increment;
 					}
 				}
 				triangle_batch.i_read++;

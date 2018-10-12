@@ -252,8 +252,7 @@ void systems_::command_::write_blend_interval(
 			const __int32 draw_id = draw[i_entity].draw_id;
 			draw_call_& draw_call = draw_calls[draw_id];
 			__int32& n_models = n_models_local[draw_id];
-
-			draw_calls[draw_id].blend_interval[n_models] = texture_blend[i_entity].interval;
+			draw_calls[draw_id].i_texture_offset[n_models] = texture_blend[i_entity].interval > 0.5f ? 1 : 0;
 
 			n_models++;
 

@@ -1301,6 +1301,13 @@ void Static_Initialise_Data(
 		command_buffer_handler.command_buffers[0].model = model_manager.model;
 		command_buffer_handler.command_buffers[1].model = model_manager.model;
 	}
+	//=======================================================================================================================
+	{
+		for (__int32 i_draw_call = 0; i_draw_call < draw_call_::id_::COUNT; i_draw_call++) {
+
+			
+		}
+	}
 }
 
 /*

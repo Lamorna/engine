@@ -23,7 +23,6 @@ struct shader_data_;
 struct archetype_data_;
 struct bin_triangle_data_;
 struct model_manager_;
-struct visibility_data_;
 struct texture_handler_;
 
 
@@ -67,8 +66,8 @@ struct bin_triangle_data_ {
 
 struct shader_input_ {
 
-	__int32 x;
-	__int32 y;
+	//__int32 x;
+	//__int32 y;
 	__int32 i_attribute;
 	__int32* index_buffer_begin;
 	unsigned __int32* colour_buffer_begin;
@@ -77,7 +76,6 @@ struct shader_input_ {
 	float* depth_buffer;
 
 	float mip_level_bias;
-	float blend_interval;
 	__int32 i_triangle;
 	__int32 triangle_id;
 	vertex4_ gradients[MAX_VERTEX_ATTRIBUTES][4];
@@ -89,6 +87,8 @@ struct shader_input_ {
 	__m128 depth[3];
 	__m128 barycentric[2][3];
 	__m128 w_screen[2][4];
+
+	__int32 model_colour;
 };
 
 struct light_source_ {
@@ -187,7 +187,7 @@ struct draw_call_ {
 			float4_[4][3]
 			);
 
-		void(*pixel_shader)(shader_input_&);
+		//void(*pixel_shader)(shader_input_&);
 	};
 
 	__int32 n_models;
@@ -200,7 +200,8 @@ struct draw_call_ {
 	matrix_ m_vertex_texture[MAX_MODELS];
 	matrix_ m_rotate[MAX_MODELS];
 	animation_data_ animation_data[MAX_MODELS];
-	float blend_interval[MAX_MODELS];
+	//float blend_interval[MAX_MODELS];
+	__int32 i_texture_offset[MAX_MODELS];
 
 	__int32 i_thread;
 	__int32 n_attributes;
@@ -250,6 +251,10 @@ struct screen_bin_ {
 		MAX_TRIANGLES_PER_BIN = 1 << 12,
 
 	};
+
+	__int32 n_draw_calls;
+	__int32 draw_id[MAX_DRAW_CALLS];
+	__int32 n_tris[MAX_DRAW_CALLS];
 
 	__int32 n_triangles;
 	bin_triangle_data_ bin_triangle_data[MAX_TRIANGLES_PER_BIN];
@@ -358,7 +363,6 @@ struct parameters_::render_ {
 		const command_buffer_handler_* command_buffer_handler;
 		const model_manager_* model_manager;
 		display_* display;
-		visibility_data_* visibility_data;
 	};
 	struct render_UI_ {
 

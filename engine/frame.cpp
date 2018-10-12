@@ -48,7 +48,6 @@ void Load_Frame_Jobs(
 	particle_manager_& particle_manager,
 	collision_manager_& collision_manager,
 	lightmap_manager_& lightmap_manager,
-	visibility_data_* visibility_data,
 	component_data_& component_data,
 	frame_jobs_& frame_jobs,
 	thread_pool_& thread_pool,
@@ -768,7 +767,6 @@ void Load_Frame_Jobs(
 			render.process_screen_bins[i_job_local].command_buffer_handler = &command_buffer_handler;
 			render.process_screen_bins[i_job_local].model_manager = &model_manager;
 			render.process_screen_bins[i_job_local].display = &display;
-			render.process_screen_bins[i_job_local].visibility_data = visibility_data;
 			render.process_screen_bins[i_job_local].i_bin = i_bin;
 			render.process_screen_bins[i_job_local].n_threads = thread_pool.n_threads;
 

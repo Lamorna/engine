@@ -36,23 +36,6 @@ void pixel_shader(
 	display_&
 );
 
-void shade_colour(shader_input_&);
-void shade_texture_CLAMP(shader_input_&);
-void shade_texture_WRAP(shader_input_&);
-void shader_texture_BLEND(shader_input_&);
-
-void Fragment_Shader(
-
-	const __int32,
-	const __int32,
-	const __int32,
-	const int2_&,
-	const float3_[3][4],
-	const float3_[3][4],
-	const raster_output_&,
-	display_& 
-);
-
 void Shade_Vertex_Colour_Simple(
 
 	const __int32,
@@ -95,31 +78,10 @@ void Vertex_Lighting_NULL(
 );
 
 
-void shader_DISPATCH_PRE(
-
-	const raster_output_&,
-	shader_input_&
-);
-//
-//void depth_NO_MASK(
-//
-//	const unsigned __int32,
-//	const unsigned __int32,
-//	const __m128i[3][4],
-//	const shader_input_&
-//);
-//
-//void depth_MASK(
-//
-//	const unsigned __int32,
-//	const unsigned __int32,
-//	const __m128i[3][4],
-//	const shader_input_&
-//);
 
 void Process_Fragments(
 
-	const raster_output_&,
-	const shader_input_&
+	raster_output_&,
+	shader_input_&
 );
 

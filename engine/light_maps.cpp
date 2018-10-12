@@ -787,6 +787,8 @@ void systems_::lightmap_::process_lightmaps(
 		lightmap_manager,
 		model
 	);
+
+	bvh.lit_model_data[i_lit_model_index].n_models = 0;
 }
 
 /*
@@ -884,7 +886,18 @@ void Initialise_Light_Maps(
 
 	) {
 
-	const unsigned __int32 clear_colour = 0;
+	const unsigned __int32 clear_colour = 100 << 8;
+
+	const __int32 colours[] = {
+
+		20 << 16 | 10 << 8 | 10 << 0,
+		10 << 16 | 20 << 8 | 10 << 0,
+		10 << 16 | 10 << 8 | 20 << 0,
+	};
+	const __int32 n_colours = sizeof(colours) / sizeof(colours[0]);
+
+	const model_& model_texture = model_manager.model[model_::id_::CUBE];
+	texture_handler_& read_texture = model_texture.texture_handlers[0];
 
 	for (__int32 i_node = 0; i_node < grid_::NUM_NODES; i_node++) {
 
@@ -903,12 +916,19 @@ void Initialise_Light_Maps(
 				for (__int32 i_mip_level = 0; i_mip_level < texture_handler.n_mip_levels; i_mip_level++) {
 
 					__int32 index = 0;
+					__int32 index_read = 0;
 					for (__int32 y = 0; y < height_lightmap; y++) {
 
 						for (__int32 x = 0; x < width_lightmap; x++) {
 
-							texture_handler.texture[i_mip_level][index] = clear_colour;
+							//texture_handler.texture[i_mip_level][index] = clear_colour;
+							__int32 width_read = x % read_texture.width;
+							__int32 height_read = y % read_texture.height;
+							texture_handler.texture[i_mip_level][index] = read_texture.texture[0][(height_read * read_texture.width) + width_read] + colours[i_model % n_colours];
+							//texture_handler.texture[i_mip_level][index] = read_texture.texture[0][index_read] + colours[i_model % n_colours];
 							index++;
+							index_read++;
+							index_read %= (read_texture.width * read_texture.height);
 						}
 					}
 
