@@ -582,51 +582,51 @@ void systems_::command_::bin_vertex_lights(
 	command_buffer_& command_buffer = command_buffer_handler.command_buffers[command_buffer_handler.i_write];
 	vertex_light_manager_& vertex_light_manager = command_buffer.vertex_light_manager;
 
-	for (__int32 i_bin = 0; i_bin < vertex_light_manager_::NUM_BINS; i_bin++) {
-		vertex_light_manager.bin[i_bin].n_lights = 0;
-	}
+	//for (__int32 i_bin = 0; i_bin < vertex_light_manager_::NUM_BINS; i_bin++) {
+	//	vertex_light_manager.bin[i_bin].n_lights = 0;
+	//}
 
-	__int32 n_lights = 0;
+	//__int32 n_lights = 0;
 
-	for (__int32 i_light = 0; i_light < command_buffer.n_vertex_lights; i_light++) {
+	//for (__int32 i_light = 0; i_light < command_buffer.n_vertex_lights; i_light++) {
 
-		float3_ delta;
-		for (__int32 i_axis = X; i_axis < W; i_axis++) {
-			delta.f[i_axis] = (float)(command_buffer.vertex_lights[i_light].position.i[i_axis] - command_buffer.position_camera.i[i_axis]) * r_fixed_scale_real;
-		}
+	//	float3_ delta;
+	//	for (__int32 i_axis = X; i_axis < W; i_axis++) {
+	//		delta.f[i_axis] = (float)(command_buffer.vertex_lights[i_light].position.i[i_axis] - command_buffer.position_camera.i[i_axis]) * r_fixed_scale_real;
+	//	}
 
-		float4_ transformed_position;
-		Vector_X_Matrix(delta, command_buffer.m_clip_space, transformed_position);
-		vertex_light_manager.light_sources[n_lights].position.x = transformed_position.x;
-		vertex_light_manager.light_sources[n_lights].position.y = transformed_position.y;
-		vertex_light_manager.light_sources[n_lights].position.z = transformed_position.w;
-		vertex_light_manager.light_sources[n_lights].colour = command_buffer.vertex_lights[i_light].colour;
-		vertex_light_manager.light_sources[n_lights].intensity = command_buffer.vertex_lights[i_light].intensity;
+	//	float4_ transformed_position;
+	//	Vector_X_Matrix(delta, command_buffer.m_clip_space, transformed_position);
+	//	vertex_light_manager.light_sources[n_lights].position.x = transformed_position.x;
+	//	vertex_light_manager.light_sources[n_lights].position.y = transformed_position.y;
+	//	vertex_light_manager.light_sources[n_lights].position.z = transformed_position.w;
+	//	vertex_light_manager.light_sources[n_lights].colour = command_buffer.vertex_lights[i_light].colour;
+	//	vertex_light_manager.light_sources[n_lights].intensity = command_buffer.vertex_lights[i_light].intensity;
 
-		__int32 i_bin = __int32(transformed_position.w / vertex_light_manager.bin_interval);
-		bool is_valid = (i_bin >= 0) & (i_bin < vertex_light_manager_::NUM_BINS);
-		i_bin = is_valid ? i_bin : 0;
-		vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
-		vertex_light_manager.i_bin[n_lights] = i_bin;
-		bin.n_lights += is_valid;
-		n_lights += is_valid;
-	}
+	//	__int32 i_bin = __int32(transformed_position.w / vertex_light_manager.bin_interval);
+	//	bool is_valid = (i_bin >= 0) & (i_bin < vertex_light_manager_::NUM_BINS);
+	//	i_bin = is_valid ? i_bin : 0;
+	//	vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
+	//	vertex_light_manager.i_bin[n_lights] = i_bin;
+	//	bin.n_lights += is_valid;
+	//	n_lights += is_valid;
+	//}
 
-	__int32 i_current = 0;
-	for (__int32 i_bin = 0; i_bin < vertex_light_manager_::NUM_BINS; i_bin++) {
-		vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
-		bin.i_start = i_current;
-		i_current += bin.n_lights;
-		bin.n_lights = 0;
-	}
+	//__int32 i_current = 0;
+	//for (__int32 i_bin = 0; i_bin < vertex_light_manager_::NUM_BINS; i_bin++) {
+	//	vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
+	//	bin.i_start = i_current;
+	//	i_current += bin.n_lights;
+	//	bin.n_lights = 0;
+	//}
 
-	for (__int32 i_light = 0; i_light < n_lights; i_light++) {
+	//for (__int32 i_light = 0; i_light < n_lights; i_light++) {
 
-		__int32 i_bin = vertex_light_manager.i_bin[i_light];
-		vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
-		vertex_light_manager.i_light[bin.i_start + bin.n_lights] = i_light;
-		bin.n_lights++;
-	}
+	//	__int32 i_bin = vertex_light_manager.i_bin[i_light];
+	//	vertex_light_manager_::bin_& bin = vertex_light_manager.bin[i_bin];
+	//	vertex_light_manager.i_light[bin.i_start + bin.n_lights] = i_light;
+	//	bin.n_lights++;
+	//}
 }
 
 /*

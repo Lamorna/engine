@@ -26,7 +26,6 @@ void Clear_Tile_Buffer(
 
 		store(zero_depth, display.depth_buffer_bin[i_thread] + i);
 		store(zero_colour, display.colour_buffer_bin[i_thread] + i);
-		store(zero_colour, display.index_buffer_bin[i_thread] + i);
 	}
 }
 
@@ -197,21 +196,25 @@ void Process_Bin_Triangles(
 
 	const __int32 bin_x,
 	const __int32 bin_y,
+	const __int32 i_thread,
 	const __int32 n_threads,
-	int2_ bin_origin,
-	display_& display,
-	raster_output_& raster_output,
-	shader_input_& shader_input,
-	const command_buffer_& command_buffer
+	const int2_ bin_origin,
+	const command_buffer_& command_buffer,
+	display_& display
 
 )
 {
+	shader_input_ shader_input;
+	shader_input.depth_buffer = display.depth_buffer_bin[i_thread];
+	shader_input.colour_buffer = display.colour_buffer_bin[i_thread];
+
+	int2_ bin_centre;
+	bin_centre.x = bin_origin.x + display_::TILE_SIZE;
+	bin_centre.y = bin_origin.y + display_::TILE_SIZE;
+
 	for (__int32 i_thread_entry = 0; i_thread_entry < n_threads; i_thread_entry++) {
 
 		screen_bin_& screen_bin = display.screen_bin[i_thread_entry][bin_y][bin_x];
-		const bin_triangle_* bin_triangle = screen_bin.bin_triangle;
-		const bin_triangle_data_* bin_triangle_data = screen_bin.bin_triangle_data;
-
 		__int32 i_triangle_read = 0;
 
 		for (__int32 i_draw_call = 0; i_draw_call < screen_bin.n_draw_calls + 1; i_draw_call++) {
@@ -219,43 +222,31 @@ void Process_Bin_Triangles(
 			const __int32 n_triangles = screen_bin.n_tris[i_draw_call];
 			const __int32 draw_id = screen_bin.draw_id[i_draw_call];
 			const draw_call_& draw_call = command_buffer.draw_calls[draw_id];
+			shader_input.draw_call = &draw_call;
 
+			float r_area[4];
+			float z_delta[3][4];
 			for (__int32 i_triangle_4 = 0; i_triangle_4 < n_triangles; i_triangle_4 += 4) {
 
 				__int32 n = min(n_triangles - i_triangle_4, 4);
 
-				float3_ position[3][4];
-				__m128 position_4[3][4];
-				float3_ barycentric[3][4];
-
-				float4_ vertices[MAX_VERTEX_ATTRIBUTES][4][3];
-
-
+				__m128 position[3][4];
 				for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
 					for (__int32 i_triangle = 0; i_triangle < n; i_triangle++) {
-
-						position[i_vertex][i_triangle] = bin_triangle[i_triangle_read + i_triangle].position[i_vertex];
-						position_4[i_vertex][i_triangle] = load_u(bin_triangle[i_triangle_read + i_triangle].position[i_vertex].f);
-						barycentric[i_vertex][i_triangle] = bin_triangle[i_triangle_read + i_triangle].barycentric[i_vertex];
-
-						vertices[0][i_triangle][i_vertex].x = bin_triangle[i_triangle_read + i_triangle].position[i_vertex].x;
-						vertices[0][i_triangle][i_vertex].y = bin_triangle[i_triangle_read + i_triangle].position[i_vertex].y;
-						vertices[0][i_triangle][i_vertex].z = bin_triangle[i_triangle_read + i_triangle].position[i_vertex].z;
-
+						position[i_vertex][i_triangle] = load_u(screen_bin.bin_triangle[i_triangle_read + i_triangle].position[i_vertex].f);
 					}
-					Transpose(position_4[i_vertex]);
+					Transpose(position[i_vertex]);
 				}
 
 				__m128 area =
-					((position_4[1][X] - position_4[0][X]) * (position_4[2][Y] - position_4[0][Y])) -
-					((position_4[1][Y] - position_4[0][Y]) * (position_4[2][X] - position_4[0][X]));
-				__m128 r_area = reciprocal(area);
-				store_u(r_area, shader_input.r_area);
+					((position[1][X] - position[0][X]) * (position[2][Y] - position[0][Y])) -
+					((position[1][Y] - position[0][Y]) * (position[2][X] - position[0][X]));
+				store_u(reciprocal(area), r_area);
 
 				__m128 depth_delta[3];
-				depth_delta[0] = position_4[2][Z] - position_4[0][Z];
-				depth_delta[1] = position_4[1][Z] - position_4[0][Z];
-				depth_delta[2] = position_4[0][Z];
+				depth_delta[0] = position[2][Z] - position[0][Z];
+				depth_delta[1] = position[1][Z] - position[0][Z];
+				depth_delta[2] = position[0][Z];
 
 				__m128i draw_id_4 = set_all(draw_id);
 				__m128i is_depth_write = draw_id_4 != set_all(draw_call_::id_::SKYBOX);
@@ -264,79 +255,22 @@ void Process_Bin_Triangles(
 				depth_delta[1] &= is_depth_write;
 				depth_delta[2] &= is_depth_write;
 
-				store_u(depth_delta[0], shader_input.z_delta[0]);
-				store_u(depth_delta[1], shader_input.z_delta[1]);
-				store_u(depth_delta[2], shader_input.z_delta[2]);
-
-
-				//===========================================================================
-				{
-
-					static const float4_ clear = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-					for (__int32 i_triangle = 0; i_triangle < n; i_triangle++) {
-
-						const __int32 i_index_model = bin_triangle_data[i_triangle_read + i_triangle].i_triangle * 3;
-						const __int32 i_model = bin_triangle_data[i_triangle_read + i_triangle].i_model;
-						const __int32 model_id = draw_call.model_id[i_model];
-						const model_& model = command_buffer.model[model_id];
-
-						for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
-
-							//for (__int32 i_attribute = 0; i_attribute < draw_call.n_attributes; i_attribute++) {
-							for (__int32 i_attribute = 0; i_attribute < FIRST_ATTRIBUTE + 1; i_attribute++) {
-
-								__int32 stride = draw_call.attribute_streams[i_attribute].stride;
-								__int32 i_attribute_read = model.i_attribute_vertices[i_attribute][i_index_model + i_vertex];
-
-								vertices[FIRST_ATTRIBUTE + i_attribute][i_triangle][i_vertex] = clear;
-								for (__int32 i_axis = X; i_axis < stride; i_axis++) {
-									vertices[FIRST_ATTRIBUTE + i_attribute][i_triangle][i_vertex].f[i_axis] = model.attribute_vertices[i_attribute][i_attribute_read].f[i_axis];
-								}
-							}
-						}
-					}
-				}
-
-				// attribute shading
-				for (__int32 i_attribute = 0; i_attribute < FIRST_ATTRIBUTE + 1; i_attribute++) {
-
-					if (draw_call.attribute_streams[i_attribute].vertex_shader) {
-
-						draw_call.attribute_streams[i_attribute].vertex_shader(
-							n,
-							command_buffer,
-							command_buffer.draw_calls[draw_id],
-							&bin_triangle_data[i_triangle_read],
-							vertices[FIRST_ATTRIBUTE + i_attribute]
-						);
-					}
-				}
-
-				draw_call.lighting_function(
-					n,
-					command_buffer.vertex_light_manager,
-					vertices[VERTEX_POSITION],
-					vertices[FIRST_ATTRIBUTE + 0]
-				);
-				//===========================================================================
+				store_u(depth_delta[0], z_delta[0]);
+				store_u(depth_delta[1], z_delta[1]);
+				store_u(depth_delta[2], z_delta[2]);
 
 				for (__int32 i_triangle = 0; i_triangle < n; i_triangle++) {
 
-					__int32 i_current_triangle = i_triangle_read + i_triangle;
-					const __int32 triangle_id = (i_current_triangle << 16) | screen_bin.bin_triangle_data[i_current_triangle].draw_id;
+					float3_ position[3];
+					position[0] = screen_bin.bin_triangle[i_triangle_read + i_triangle].position[0];
+					position[1] = screen_bin.bin_triangle[i_triangle_read + i_triangle].position[1];
+					position[2] = screen_bin.bin_triangle[i_triangle_read + i_triangle].position[2];
 
 					raster_data_ raster_data;
-					raster_data.tile_offset.x = display_::TILE_SIZE;
-					raster_data.tile_offset.y = display_::TILE_SIZE;
-
-					int2_ bin_centre;
-					bin_centre.x = bin_origin.x + raster_data.tile_offset.x;
-					bin_centre.y = bin_origin.y + raster_data.tile_offset.y;
+					raster_output_& raster_output = display.raster_output[i_thread];
 
 					Raster_Setup(
 
-						i_triangle,
 						position,
 						bin_centre,
 						raster_data
@@ -344,46 +278,65 @@ void Process_Bin_Triangles(
 
 					Rasteriser(raster_data, raster_output);
 
-					const __int32 i_model = bin_triangle_data[i_triangle_read + i_triangle].i_model;
+					const __int32 i_model_triangle = screen_bin.bin_triangle_data[i_triangle_read + i_triangle].i_triangle;
+					const __int32 i_model_index = i_model_triangle * 3;
+					const __int32 i_model = screen_bin.bin_triangle_data[i_triangle_read + i_triangle].i_model;
 					const __int32 model_id = draw_call.model_id[i_model];
 					const model_& model = command_buffer.model[model_id];
 
-					float3_ model_colour = draw_call.colour[i_model];
-					shader_input.model_colour = __int32(model_colour.b) << 16 | __int32(model_colour.g) << 8 | __int32(model_colour.r) << 0;
+					float4_ attributes[2][3];
+					static const __int32 stride[] = { W, Z };
+					static const float4_ clear = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-					for (__int32 i_interpolant = 0; i_interpolant < 2; i_interpolant++) {
+					for (__int32 i_attribute = 0; i_attribute < 2; i_attribute++) {
 
-						//bool is_texture = draw_call.attribute_streams[i_interpolant].id == draw_call_::attribute_stream_::id_::TEXTURE_VERTEX;
-						bool is_texture = i_interpolant == 1;
+						for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
 
-						if (is_texture) {
-							__int32 i_triangle_model = bin_triangle_data[i_triangle_read + i_triangle].i_triangle;
-							__int32 i_texture = model.i_textures[i_interpolant - 1][i_triangle_model];
-							i_texture += draw_call.i_texture_offset[i_model];
-							shader_input.texture_handlers[i_interpolant] = &model.texture_handlers[i_texture];
+							attributes[i_attribute][i_vertex] = clear;
+							__int32 i_model_vertex = model.i_attribute_vertices[i_attribute][i_model_index + i_vertex];
+							for (__int32 i_axis = 0; i_axis < stride[i_attribute]; i_axis++) {
+								attributes[i_attribute][i_vertex].f[i_axis] = model.attribute_vertices[i_attribute][i_model_vertex].f[i_axis];
+							}
 						}
 
-						static __int32 stride[] = {
+						if (draw_call.attribute_streams[i_attribute].vertex_shader) {
 
-							draw_call_::attribute_stream_::stride_::COLOUR_VERTEX,
-							draw_call_::attribute_stream_::stride_::TEXTURE_VERTEX,
-						};
+							draw_call.attribute_streams[i_attribute].vertex_shader(
 
-						for (__int32 i_component = 0; i_component < stride[i_interpolant]; i_component++) {
-
-							float v0 = vertices[FIRST_ATTRIBUTE + i_interpolant][i_triangle][0].f[i_component];
-							float v1 = vertices[FIRST_ATTRIBUTE + i_interpolant][i_triangle][1].f[i_component];
-							float v2 = vertices[FIRST_ATTRIBUTE + i_interpolant][i_triangle][2].f[i_component];
-
-							shader_input.gradients[i_interpolant][i_component].x = set_all(v2 - v0);
-							shader_input.gradients[i_interpolant][i_component].y = set_all(v1 - v0);
-							shader_input.gradients[i_interpolant][i_component].z = set_all(v0);
+								command_buffer,
+								command_buffer.draw_calls[draw_id],
+								i_model,
+								attributes[i_attribute]
+							);
 						}
 					}
 
-					float3_ b0 = barycentric[0][i_triangle];
-					float3_ b1 = barycentric[1][i_triangle];
-					float3_ b2 = barycentric[2][i_triangle];
+					draw_call.lighting_function(
+
+						command_buffer.vertex_light_manager,
+						position,
+						attributes[ATTRIBUTE_COLOUR]
+					);
+
+					for (__int32 i_attribute = 0; i_attribute < 2; i_attribute++) {
+
+
+						for (__int32 i_axis = X; i_axis < stride[i_attribute]; i_axis++) {
+
+							shader_input.gradients[i_attribute][i_axis].x = set_all(attributes[i_attribute][2].f[i_axis] - attributes[i_attribute][0].f[i_axis]);
+							shader_input.gradients[i_attribute][i_axis].y = set_all(attributes[i_attribute][1].f[i_axis] - attributes[i_attribute][0].f[i_axis]);
+							shader_input.gradients[i_attribute][i_axis].z = set_all(attributes[i_attribute][0].f[i_axis]);
+						}
+					}
+
+					__int32 i_texture = model.i_textures[0][i_model_triangle];
+					i_texture += draw_call.i_texture_offset[i_model];
+					shader_input.texture_handler = &model.texture_handlers[i_texture];
+					shader_input.mip_level_bias = draw_call.mip_level_bias;
+
+					float3_ b0 = screen_bin.bin_triangle[i_triangle_read + i_triangle].barycentric[0];
+					float3_ b1 = screen_bin.bin_triangle[i_triangle_read + i_triangle].barycentric[1];
+					float3_ b2 = screen_bin.bin_triangle[i_triangle_read + i_triangle].barycentric[2];
 
 					shader_input.barycentric[1][X] = set_all(b2.y - b0.y);
 					shader_input.barycentric[1][Y] = set_all(b1.y - b0.y);
@@ -393,9 +346,14 @@ void Process_Bin_Triangles(
 					shader_input.barycentric[0][Y] = set_all(b1.z - b0.z);
 					shader_input.barycentric[0][Z] = set_all(b0.z);
 
-					shader_input.triangle_id = triangle_id;
+					shader_input.z_delta[X] = set_all(z_delta[0][i_triangle]);
+					shader_input.z_delta[Y] = set_all(z_delta[1][i_triangle]);
+					shader_input.z_delta[Z] = set_all(z_delta[2][i_triangle]);
+
+					static const float r_fixed_scale = 1.0f / fixed_point_scale_g;
+					shader_input.r_area = set_all(r_area[i_triangle] * r_fixed_scale);
+
 					shader_input.i_triangle = i_triangle;
-					shader_input.draw_call = &draw_call;
 
 					Process_Fragments(raster_output, shader_input);
 				}
@@ -426,60 +384,20 @@ void Render_Screen_Bins(
 )
 {
 
-	raster_output_ raster_output;
-
 	int2_ bin_origin;
 	bin_origin.x = bin_x << display_::BIN_SIZE_SHIFT;
 	bin_origin.y = bin_y << display_::BIN_SIZE_SHIFT;
-
-	shader_input_ shader_input;
-	shader_input.depth_buffer = display.depth_buffer_bin[i_thread];
-	shader_input.index_buffer_begin = display.index_buffer_bin[i_thread];
-	shader_input.colour_buffer_begin = display.colour_buffer_bin[i_thread];
-
-	//Populate_Visibility_Buffer(
-
-	//	bin_x,
-	//	bin_y,
-	//	n_threads,
-	//	bin_origin,
-	//	display,
-	//	raster_output,
-	//	shader_input
-	//);
 
 	Process_Bin_Triangles(
 
 		bin_x,
 		bin_y,
+		i_thread,
 		n_threads,
 		bin_origin,
-		display,
-		raster_output,
-		shader_input,
-		command_buffer
+		command_buffer,
+		display
 	);
-
-	//visibility_data_& visibility_data = visibility_datas[i_thread];
-
-	//Process_Visibility_Buffer(
-
-	//	i_thread,
-	//	display,
-	//	visibility_data
-	//);
-
-	//Render_Visible_Triangles(
-
-	//	bin_x,
-	//	bin_y,
-	//	bin_origin,
-	//	command_buffer,
-	//	display,
-	//	raster_output,
-	//	shader_input,
-	//	visibility_data
-	//);
 
 	Depth_Fog(
 

@@ -38,27 +38,31 @@ void pixel_shader(
 
 void Shade_Vertex_Colour_Simple(
 
-	const __int32,
 	const command_buffer_&,
 	const draw_call_&,
-	const bin_triangle_data_[4],
-	float4_[4][3]
+	const __int32,
+	float4_[3]
 );
 void Shade_Vertex_Colour(
 
-	const __int32,
 	const command_buffer_&,
 	const draw_call_&,
-	const bin_triangle_data_[4],
-	float4_[4][3]
+	const __int32,
+	float4_[3]
 );
 void Shade_Vertex_Texture(
 
-	const __int32,
 	const command_buffer_&,
 	const draw_call_&,
-	const bin_triangle_data_[4],
-	float4_[4][3]
+	const __int32,
+	float4_[3]
+);
+
+void Vertex_Lighting_PLAYER(
+
+	const vertex_light_manager_&,
+	const float3_[3],
+	float4_[3]
 );
 
 void Vertex_Lighting(
@@ -71,10 +75,9 @@ void Vertex_Lighting(
 
 void Vertex_Lighting_NULL(
 
-	const __int32,
 	const vertex_light_manager_&,
-	const float4_[4][3],
-	float4_[4][3]
+	const float3_[3],
+	float4_[3]
 );
 
 

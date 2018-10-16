@@ -74,7 +74,7 @@ struct thread_pool_ {
 
 	enum {
 
-		MAX_WORKER_THREADS = 16,
+		MAX_WORKER_THREADS = 8,
 	};
 
 	bool is_running;

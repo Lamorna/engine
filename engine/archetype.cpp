@@ -243,7 +243,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -363,7 +363,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -709,7 +709,7 @@ void COMPONENT_Populate_Table(
 
 		draw_call.mip_level_bias = 0.2f;
 
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -849,7 +849,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 	}
 	// ----------------------------------------------------------------------------------------------------------
 	{
@@ -929,21 +929,12 @@ void COMPONENT_Populate_Table(
 
 		draw_call_& draw_call = draw_calls[draw_id];
 
-		//draw_call.i_vertices = model.i_vertices;
-		//draw_call.vertices = model.vertices_frame[0];
-
 		draw_call.attribute_streams[0].id = draw_call_::attribute_stream_::id_::COLOUR_VERTEX;
 		draw_call.attribute_streams[0].stride = draw_call_::attribute_stream_::stride_::COLOUR_VERTEX;
-		//draw_call.attribute_streams[0].i_vertices = model.i_attribute_vertices[model_::ATTRIBUTE_COLOUR];
-		//draw_call.attribute_streams[0].vertices = model.attribute_vertices[model_::ATTRIBUTE_COLOUR]->f;
 		draw_call.attribute_streams[0].vertex_shader = Shade_Vertex_Colour_Simple;
 
 		draw_call.attribute_streams[1].id = draw_call_::attribute_stream_::id_::TEXTURE_VERTEX;
 		draw_call.attribute_streams[1].stride = draw_call_::attribute_stream_::stride_::TEXTURE_VERTEX;
-		//draw_call.attribute_streams[1].i_vertices = model.i_attribute_vertices[model_::ATTRIBUTE_TEXTURE_PRIMARY];
-		//draw_call.attribute_streams[1].vertices = model.attribute_vertices[model_::ATTRIBUTE_TEXTURE_PRIMARY]->f;
-		//draw_call.attribute_streams[1].i_textures = model.i_textures[0];
-		//draw_call.attribute_streams[1].texture_handlers = model.texture_handlers;
 		draw_call.attribute_streams[1].vertex_shader = NULL;
 		draw_call.n_attributes = 2;
 
@@ -1308,7 +1299,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -1473,7 +1464,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -1823,7 +1814,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -1970,7 +1961,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -2547,7 +2538,7 @@ void COMPONENT_Populate_Table(
 
 		draw_call.mip_level_bias = 0.2f;
 
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 	}
 	// ----------------------------------------------------------------------------------------------------------
 	{
@@ -2785,7 +2776,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 	}
 	// ----------------------------------------------------------------------------------------------------------
 	{
@@ -3091,7 +3082,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_additional_pixel_shaders = 1;
 
 		draw_call.mip_level_bias = 0.1f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 
 	}
 	// ----------------------------------------------------------------------------------------------------------
@@ -3469,7 +3460,7 @@ void COMPONENT_Populate_Table(
 		draw_call.n_attributes = 2;
 
 		draw_call.mip_level_bias = 0.2f;
-		draw_call.lighting_function = Vertex_Lighting;
+		draw_call.lighting_function = Vertex_Lighting_PLAYER;
 	}
 
 	assert(component_data.archetype_data.n_archetypes < component_fetch_::MAX_ARCHETYPES);

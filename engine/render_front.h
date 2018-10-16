@@ -5,6 +5,7 @@
 #include "vector.h"
 #include "threads.h"
 #include "setup.h"
+#include "raster.h"
 
 //======================================================================
 
@@ -24,7 +25,6 @@ struct archetype_data_;
 struct bin_triangle_data_;
 struct model_manager_;
 struct texture_handler_;
-
 
 enum {
 
@@ -66,29 +66,16 @@ struct bin_triangle_data_ {
 
 struct shader_input_ {
 
-	//__int32 x;
-	//__int32 y;
-	__int32 i_attribute;
-	__int32* index_buffer_begin;
-	unsigned __int32* colour_buffer_begin;
-	__int32* index_buffer;
+	__int32 i_triangle;
+	float mip_level_bias;
 	unsigned __int32* colour_buffer;
 	float* depth_buffer;
-
-	float mip_level_bias;
-	__int32 i_triangle;
-	__int32 triangle_id;
-	vertex4_ gradients[MAX_VERTEX_ATTRIBUTES][4];
-	texture_handler_* texture_handlers[MAX_VERTEX_ATTRIBUTES];
-	__m128i colour_out[MAX_VERTEX_ATTRIBUTES][4];
+	const texture_handler_* texture_handler;
 	const draw_call_* draw_call;
-	float r_area[4];
-	float z_delta[3][4];
-	__m128 depth[3];
+	__m128 r_area;
+	__m128 z_delta[3];
 	__m128 barycentric[2][3];
-	__m128 w_screen[2][4];
-
-	__int32 model_colour;
+	vertex4_ gradients[NUM_VERTEX_ATTRIBUTES][4];
 };
 
 struct light_source_ {
@@ -102,6 +89,7 @@ struct light_source_ {
 struct vertex_light_manager_ {
 
 	enum {
+
 		MAX_LIGHTS = 1 << 8,
 		NUM_BINS = 10,
 	};
@@ -180,11 +168,11 @@ struct draw_call_ {
 
 		void(*vertex_shader)(
 
-			const __int32,
 			const command_buffer_&,
 			const draw_call_&,
-			const bin_triangle_data_[4],
-			float4_[4][3]
+			const __int32,
+			float4_[3]
+
 			);
 
 		//void(*pixel_shader)(shader_input_&);
@@ -210,16 +198,15 @@ struct draw_call_ {
 	//float3_ const* vertices;
 
 	__int32 n_additional_pixel_shaders;
-	void(*additional_pixel_shaders[MAX_VERTEX_ATTRIBUTES])(shader_input_&);
+	void(*additional_pixel_shaders[NUM_VERTEX_ATTRIBUTES])(shader_input_&);
 
-	attribute_stream_ attribute_streams[MAX_VERTEX_ATTRIBUTES];
+	attribute_stream_ attribute_streams[NUM_VERTEX_ATTRIBUTES];
 
 	void(*lighting_function)(
 
-		const __int32, 
-		const vertex_light_manager_&,
-		const float4_[4][3],
-		float4_[4][3]
+		const vertex_light_manager_& vertex_light_manager,
+		const float3_ position[3],
+		float4_ colour[3]
 	);
 
 	void(*renderer_function)(
@@ -262,7 +249,6 @@ struct screen_bin_ {
 
 };
 
-
 struct display_ {
 
 	enum {
@@ -286,12 +272,13 @@ struct display_ {
 
 	CACHE_ALIGN unsigned __int32 colour_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
 	CACHE_ALIGN float depth_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
-	CACHE_ALIGN __int32 index_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
 
 	HWND handle_window;
 	IDirect3DDevice9* d3d9_device;
 	IDirect3DSurface9* d3d9_surface;
 	D3DLOCKED_RECT locked_rect;
+
+	raster_output_ raster_output[thread_pool_::MAX_WORKER_THREADS];
 };
 
 //======================================================================

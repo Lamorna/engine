@@ -44,17 +44,20 @@ static const float r_fixed_scale_real = 1.0f / fixed_scale_real;
 enum lamorna_ {
 
 	VERTEX_POSITION,
-	FIRST_ATTRIBUTE,
-	//VERTEX_COLOUR,
-	//VERTEX_TEXCOORDS,
-	//VERTEX_BLEND_WEIGHT,
-	MAX_VERTEX_ATTRIBUTES = 6,
+	VERTEX_COLOUR,
+	VERTEX_TEXCOORDS,
+
+	NUM_VERTEX_ATTRIBUTES,
+
+	ATTRIBUTE_COLOUR = 0,
+	ATTRIBUTE_TEXCOORD,
 
 
 	X = 0, Y, Z, W, N_VERTEX_COORDINATES,
 	R = 0, G, B, A,
-	U = 0, V, I_TEXTURE, 
-	MAX_COMPONENTS = MAX_VERTEX_ATTRIBUTES * N_VERTEX_COORDINATES,		// 4 elements a attribute vector
+	U = 0, V,  
+
+	MAX_COMPONENTS = NUM_VERTEX_ATTRIBUTES * N_VERTEX_COORDINATES,		// 4 elements a attribute vector
 };
 
 //======================================================================
@@ -735,105 +738,7 @@ static __m128i const Axis_Mask[4] = {
 
 //======================================================================
 
-static const __m128i default_mask = set(0x0, ~0x0, 0x0, ~0x0);
 
-enum bitonic_ {
-
-	UP, DOWN,
-};
-
-static __m128i bitonic_compare_1(__m128i in) {
-
-	__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(2, 3, 0, 1));
-	__m128i max = max_vec(in, shuffle);
-	__m128i min = min_vec(in, shuffle);
-	__m128i mask = _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 1, 1, 0));
-	return blend(max, min, mask);
-}
-
-static __m128i bitonic_compare_2(const __int32 select, __m128i in) {
-
-	const static __m128i mask[][2] = {
-
-		{ _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 0, 1, 1)), _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 1, 0, 1)) },
-		{ _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(1, 1, 0, 0)), _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(1, 0, 1, 0)) },
-
-	};
-	{
-		__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(1, 0, 3, 2));
-		__m128i max = max_vec(in, shuffle);
-		__m128i min = min_vec(in, shuffle);
-		in = blend(max, min, mask[select][0]);
-	}
-	{
-		__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(2, 3, 0, 1));
-		__m128i max = max_vec(in, shuffle);
-		__m128i min = min_vec(in, shuffle);
-		in = blend(max, min, mask[select][1]);
-	}
-	return in;
-}
-
-static void bitonic_compare_4(const __int32 select, __m128i in[2]) {
-
-	__m128i out[2];
-	out[0] = max_vec(in[0], in[1]);
-	out[1] = min_vec(in[0], in[1]);
-	in[0] = out[select];
-	in[1] = out[select ^ 1];
-}
-
-static void bitonic_compare_8(const __int32 select, __m128i in[4]) {
-
-	__m128i out[2][2];
-	out[0][0] = max_vec(in[0], in[2]);
-	out[0][1] = max_vec(in[1], in[3]);
-	out[1][0] = min_vec(in[0], in[2]);
-	out[1][1] = min_vec(in[1], in[3]);
-
-	in[0] = out[select][0];
-	in[1] = out[select][1];
-	in[2] = out[select ^ 1][0];
-	in[3] = out[select ^ 1][1];
-}
-
-static __m128i bitonic_sort_4(const __int32 select, __m128i in) {
-
-	in = bitonic_compare_1(in);
-	in = bitonic_compare_2(select, in);
-	return in;
-}
-
-static void bitonic_sort_8(const __int32 select, __m128i in[2]) {
-
-	in[0] = bitonic_sort_4(bitonic_::DOWN, in[0]);
-	in[1] = bitonic_sort_4(bitonic_::UP, in[1]);
-
-	bitonic_compare_4(select, &in[0]);
-
-	in[0] = bitonic_compare_2(select, in[0]);
-	in[1] = bitonic_compare_2(select, in[1]);
-}
-
-static void bitonic_sort_16(const __int32 select, const __int32 input[], __int32 output[]) {
-
-	__m128i in[4];
-	for (__int32 i = 0; i < 4; i++) {
-		in[i] = load_u(input + (i * 4));
-	}
-
-	bitonic_sort_8(bitonic_::DOWN, &in[0]);
-	bitonic_sort_8(bitonic_::UP, &in[2]);
-
-	bitonic_compare_8(select, in);
-
-	bitonic_sort_8(select, &in[0]);
-	bitonic_sort_8(select, &in[2]);
-
-	for (__int32 i = 0; i < 4; i++) {
-		store_u(in[i], output + (i * 4));
-	}
-}
 
 //======================================================================
 

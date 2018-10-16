@@ -175,7 +175,6 @@
     <ClInclude Include="update.h" />
     <ClInclude Include="vector.h" />
     <ClInclude Include="vector_math.h" />
-    <ClInclude Include="vis_buffer.h" />
     <ClInclude Include="windows.h" />
   </ItemGroup>
   <ItemGroup>
@@ -207,7 +206,6 @@
     <ClCompile Include="threads.cpp" />
     <ClCompile Include="update.cpp" />
     <ClCompile Include="vector_math.cpp" />
-    <ClCompile Include="vis_buffer.cpp" />
     <ClCompile Include="windows.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

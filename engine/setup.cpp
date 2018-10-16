@@ -18,6 +18,119 @@
 #include "texture.h"
 #include "string.h"
 
+static const __m128i default_mask = set(0x0, ~0x0, 0x0, ~0x0);
+
+enum bitonic_ {
+
+	UP, DOWN,
+};
+
+static __m128i bitonic_compare_1(__m128i in) {
+
+	__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(2, 3, 0, 1));
+	__m128i max = max_vec(in, shuffle);
+	__m128i min = min_vec(in, shuffle);
+	__m128i mask = _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 1, 1, 0));
+	return blend(max, min, mask);
+}
+
+static __m128i bitonic_compare_2(const __int32 select, __m128i in) {
+
+	const static __m128i mask[][2] = {
+
+		{ _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 0, 1, 1)), _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(0, 1, 0, 1)) },
+	{ _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(1, 1, 0, 0)), _mm_shuffle_epi32(default_mask, _MM_SHUFFLE(1, 0, 1, 0)) },
+
+	};
+	{
+		__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(1, 0, 3, 2));
+		__m128i max = max_vec(in, shuffle);
+		__m128i min = min_vec(in, shuffle);
+		in = blend(max, min, mask[select][0]);
+	}
+	{
+		__m128i shuffle = _mm_shuffle_epi32(in, _MM_SHUFFLE(2, 3, 0, 1));
+		__m128i max = max_vec(in, shuffle);
+		__m128i min = min_vec(in, shuffle);
+		in = blend(max, min, mask[select][1]);
+	}
+	return in;
+}
+
+//void bitonic_merge_8(const __int32 select, __m128i in[2]) {
+//
+//	__m128i out[2];
+//	out[0] = max_vec(in[0], in[1]);
+//	out[1] = min_vec(in[0], in[1]);
+//	in[0] = out[select];
+//	in[1] = out[select ^ 1];
+//}
+
+void bitonic_merge(const __int32 select, const __int32 size, __m128i in[4]) {
+
+	__m128i out[2][8];
+	__int32 width = size / (2 * 4);
+
+	for (__int32 i = 0; i < width; i++) {
+		out[0][i] = max_vec(in[i], in[i + width]);
+		out[1][i] = min_vec(in[i], in[i + width]);
+	}
+
+	for (__int32 i = 0; i < width; i++) {
+		in[i] = out[select][i];
+		in[i + width] = out[select ^ 1][i];
+	}
+
+	//out[0][0] = max_vec(in[0], in[2]);
+	//out[0][1] = max_vec(in[1], in[3]);
+	//out[1][0] = min_vec(in[0], in[2]);
+	//out[1][1] = min_vec(in[1], in[3]);
+
+	//in[0] = out[select][0];
+	//in[1] = out[select][1];
+	//in[2] = out[select ^ 1][0];
+	//in[3] = out[select ^ 1][1];
+
+}
+
+__m128i bitonic_sort_4(const __int32 select, __m128i in) {
+
+	in = bitonic_compare_1(in);
+	in = bitonic_compare_2(select, in);
+	return in;
+}
+
+void bitonic_sort_8(const __int32 select, __m128i in[2]) {
+
+	in[0] = bitonic_sort_4(bitonic_::DOWN, in[0]);
+	in[1] = bitonic_sort_4(bitonic_::UP, in[1]);
+
+	bitonic_merge(select, 8, &in[0]);
+
+	in[0] = bitonic_compare_2(select, in[0]);
+	in[1] = bitonic_compare_2(select, in[1]);
+}
+
+void bitonic_sort_16(const __int32 select, const __int32 input[], __int32 output[]) {
+
+	__m128i in[4];
+	for (__int32 i = 0; i < 4; i++) {
+		in[i] = load_u(input + (i * 4));
+	}
+
+	bitonic_sort_8(bitonic_::DOWN, &in[0]);
+	bitonic_sort_8(bitonic_::UP, &in[2]);
+
+	bitonic_merge(select, 16, in);
+
+	bitonic_sort_8(select, &in[0]);
+	bitonic_sort_8(select, &in[2]);
+
+	for (__int32 i = 0; i < 4; i++) {
+		store_u(in[i], output + (i * 4));
+	}
+}
+
 /*
 ==================
 ==================
@@ -74,7 +187,7 @@ void Get_System_Info(
 	//printf("  Active processor mask: %u\n",
 	//	siSysInfo.dwActiveProcessorMask);
 
-	thread_pool.n_threads = system_info.dwNumberOfProcessors;
+	thread_pool.n_threads = system_info.dwNumberOfProcessors > thread_pool_::MAX_WORKER_THREADS ? thread_pool_::MAX_WORKER_THREADS : system_info.dwNumberOfProcessors;
 }
 
 /*
@@ -813,21 +926,21 @@ void Static_Initialise_Data(
 	// BITONIC SORT TEST
 	//=======================================================================================================================
 	{
-		//{
-		//	__int32 input_array[16] = {
+		{
+			__int32 input_array[16] = {
 
-		//		15, 13, 14, 9, 11, 10, 9, 1, 7, 6, 12, 4, 0, 2, 8, 3,
-		//	};
+				15, 13, 14, 9, 11, 10, 9, 1, 7, 6, 12, 4, 0, 2, 8, 3,
+			};
 
-		//	__int32 output_array[16];
+			__int32 output_array[16];
 
-		//	bitonic_sort_16(bitonic_::UP, input_array, output_array);
+			bitonic_sort_16(bitonic_::UP, input_array, output_array);
 
-		//	for (__int32 i = 0; i < 16; i++) {
-		//		printf_s("%i,", output_array[i]);
-		//	}
-		//	printf_s("\n");
-		//}
+			for (__int32 i = 0; i < 16; i++) {
+				printf_s("%i,", output_array[i]);
+			}
+			printf_s("\n");
+		}
 	}
 	//=======================================================================================================================
 	{
@@ -1289,7 +1402,7 @@ void Static_Initialise_Data(
 
 		for (__int32 i_draw_call = 0; i_draw_call < draw_call_::id_::COUNT; i_draw_call++) {
 
-			for (__int32 i_attribute = 0; i_attribute < MAX_VERTEX_ATTRIBUTES; i_attribute++) {
+			for (__int32 i_attribute = 0; i_attribute < NUM_VERTEX_ATTRIBUTES; i_attribute++) {
 
 				command_buffer.draw_calls[i_draw_call].attribute_streams[i_attribute].vertex_shader = NULL;
 			}

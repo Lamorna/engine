@@ -140,12 +140,12 @@ void Process_Visibility_Buffer(
 		__int32 pixel_ids[display_::BIN_SIZE];
 		__int32 n_pixel_ids = 0;
 		for (__int32 i_pixel = 0; i_pixel < display_::BIN_SIZE; i_pixel++) {
-			__int32 pixel_id = display.index_buffer_bin[i_thread][i_read];
-			bool is_new_id = current_id != pixel_id;
-			pixel_ids[n_pixel_ids] = pixel_id;
-			n_pixel_ids += is_new_id;
-			current_id = blend_int(pixel_id, current_id, is_new_id);
-			i_read++;
+			//__int32 pixel_id = display.index_buffer_bin[i_thread][i_read];
+			//bool is_new_id = current_id != pixel_id;
+			//pixel_ids[n_pixel_ids] = pixel_id;
+			//n_pixel_ids += is_new_id;
+			//current_id = blend_int(pixel_id, current_id, is_new_id);
+			//i_read++;
 		}
 
 		// make pixel id's unique
@@ -282,7 +282,7 @@ void Render_Visible_Triangles(
 				i_triangle_bucket = blend_int(0, i_triangle_bucket, is_next_bucket);
 			}
 
-			float4_ vertices[MAX_VERTEX_ATTRIBUTES][4][3];
+			float4_ vertices[NUM_VERTEX_ATTRIBUTES][4][3];
 			static const float4_ clear = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 			for (__int32 i_triangle = 0; i_triangle < n; i_triangle++) {

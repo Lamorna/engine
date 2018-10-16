@@ -1,8 +1,8 @@
 #pragma once
 
-#include "raster.h"
 #include "vector.h"
-#include "render_front.h"
+
+struct shader_input_;
 
 struct int2_64_ {
 
@@ -21,7 +21,6 @@ struct raster_data_ {
 	__int32 accept_table[2][3][4][4];
 	int2_ bb_min;
 	int2_ bb_max;
-	int2_ tile_offset;
 	int2_64_ v[3];
 };
 
@@ -39,31 +38,35 @@ struct raster_fragment_complete_ {
 	unsigned __int32 coverage_mask;
 };
 
-
 struct raster_output_ {
 
 	enum {
 
-		TRIVIAL_ACCEPT,
 		PARTIAL_ACCEPT,
+		TRIVIAL_ACCEPT_4,
+		TRIVIAL_ACCEPT_16,
+		TRIVIAL_ACCEPT_64,
+
 		NUM_ACCEPT_TYPES,
 
-		MAX_TRIANGLES = 4,
-		MAX_FRAGMENTS = (display_::BIN_SIZE * display_::BIN_SIZE) / (4 * 4)
+		BIN_SIZE_TEMP = 128,
+
+		//MAX_FRAGMENTS = (BIN_SIZE_TEMP * BIN_SIZE_TEMP) / (4 * 4)
+		MAX_FRAGMENTS = 512,
 	};
 
-	raster_fragment_ raster_fragment[NUM_ACCEPT_TYPES][MAX_FRAGMENTS];
-	raster_fragment_complete_ raster_fragment_complete[4];
 	__int32 n_fragments[NUM_ACCEPT_TYPES];
 	__int32 n_fragments_COMPLETE;
 	__int32 reject_table[3][3][4][4];
+	raster_fragment_complete_ raster_fragment_complete[4];
+	raster_fragment_* raster_fragment[NUM_ACCEPT_TYPES];
+	raster_fragment_ base_fragments[MAX_FRAGMENTS];
 
 };
 
 void Raster_Setup(
 
-	const __int32,
-	const float3_[3][4],
+	const float3_[3],
 	const int2_&,
 	raster_data_&
 );

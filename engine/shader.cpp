@@ -6,7 +6,6 @@
 
 static const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
 
-static const float r_fixed_scale = 1.0f / fixed_point_scale_g;
 
 
 
@@ -22,8 +21,6 @@ void pixel_shader(
 	shader_input_& shader_input
 ) {
 
-	unsigned __int32 depth_mask = 0x0;
-
 	static const __m128 zero = set_zero();
 	static const __m128 half = set_all(0.5f);
 	static const __m128 one = set_one();
@@ -32,29 +29,24 @@ void pixel_shader(
 	static const __m128i zero_int = set_zero_si128();
 	static const __m128 colour_clamp = broadcast(load_s(255.0f));
 
-	__m128 z_interpolant[3];
-	z_interpolant[X] = set_all(shader_input.z_delta[0][shader_input.i_triangle]);
-	z_interpolant[Y] = set_all(shader_input.z_delta[1][shader_input.i_triangle]);
-	z_interpolant[Z] = set_all(shader_input.z_delta[2][shader_input.i_triangle]);
-
-	__m128 r_area = set_all(shader_input.r_area[shader_input.i_triangle] * r_fixed_scale);
+	unsigned __int32 depth_mask = 0x0;
 
 	__m128 w_screen[2][4];
-	w_screen[0][0] = convert_float(bazza[0][0]) * r_area;
-	w_screen[0][1] = convert_float(bazza[0][1]) * r_area;
-	w_screen[0][2] = convert_float(bazza[0][2]) * r_area;
-	w_screen[0][3] = convert_float(bazza[0][3]) * r_area;
+	w_screen[0][0] = convert_float(bazza[0][0]) * shader_input.r_area;
+	w_screen[0][1] = convert_float(bazza[0][1]) * shader_input.r_area;
+	w_screen[0][2] = convert_float(bazza[0][2]) * shader_input.r_area;
+	w_screen[0][3] = convert_float(bazza[0][3]) * shader_input.r_area;
 
-	w_screen[1][0] = convert_float(bazza[1][0]) * r_area;
-	w_screen[1][1] = convert_float(bazza[1][1]) * r_area;
-	w_screen[1][2] = convert_float(bazza[1][2]) * r_area;
-	w_screen[1][3] = convert_float(bazza[1][3]) * r_area;
+	w_screen[1][0] = convert_float(bazza[1][0]) * shader_input.r_area;
+	w_screen[1][1] = convert_float(bazza[1][1]) * shader_input.r_area;
+	w_screen[1][2] = convert_float(bazza[1][2]) * shader_input.r_area;
+	w_screen[1][3] = convert_float(bazza[1][3]) * shader_input.r_area;
 
 	__m128 z_screen[4];
-	z_screen[0] = (z_interpolant[X] * w_screen[0][0]) + (z_interpolant[Y] * w_screen[1][0]) + z_interpolant[Z];
-	z_screen[1] = (z_interpolant[X] * w_screen[0][1]) + (z_interpolant[Y] * w_screen[1][1]) + z_interpolant[Z];
-	z_screen[2] = (z_interpolant[X] * w_screen[0][2]) + (z_interpolant[Y] * w_screen[1][2]) + z_interpolant[Z];
-	z_screen[3] = (z_interpolant[X] * w_screen[0][3]) + (z_interpolant[Y] * w_screen[1][3]) + z_interpolant[Z];
+	z_screen[0] = (shader_input.z_delta[X] * w_screen[0][0]) + (shader_input.z_delta[Y] * w_screen[1][0]) + shader_input.z_delta[Z];
+	z_screen[1] = (shader_input.z_delta[X] * w_screen[0][1]) + (shader_input.z_delta[Y] * w_screen[1][1]) + shader_input.z_delta[Z];
+	z_screen[2] = (shader_input.z_delta[X] * w_screen[0][2]) + (shader_input.z_delta[Y] * w_screen[1][2]) + shader_input.z_delta[Z];
+	z_screen[3] = (shader_input.z_delta[X] * w_screen[0][3]) + (shader_input.z_delta[Y] * w_screen[1][3]) + shader_input.z_delta[Z];
 
 	__m128i pixel_mask[4];
 	pixel_mask[0] = load_mask[(coverage_mask >> 0) & 0xf];
@@ -96,13 +88,6 @@ void pixel_shader(
 
 
 	__m128 screen_barry[2][4];
-	__m128 r_depth[4];
-
-	r_depth[0] = reciprocal(z_screen[0]);
-	r_depth[1] = reciprocal(z_screen[1]);
-	r_depth[2] = reciprocal(z_screen[2]);
-	r_depth[3] = reciprocal(z_screen[3]);
-
 	screen_barry[0][0] = (w_screen[0][0] * shader_input.barycentric[0][X]) + (w_screen[1][0] * shader_input.barycentric[0][Y]) + shader_input.barycentric[0][Z];
 	screen_barry[0][1] = (w_screen[0][1] * shader_input.barycentric[0][X]) + (w_screen[1][1] * shader_input.barycentric[0][Y]) + shader_input.barycentric[0][Z];
 	screen_barry[0][2] = (w_screen[0][2] * shader_input.barycentric[0][X]) + (w_screen[1][2] * shader_input.barycentric[0][Y]) + shader_input.barycentric[0][Z];
@@ -113,40 +98,44 @@ void pixel_shader(
 	screen_barry[1][2] = (w_screen[0][2] * shader_input.barycentric[1][X]) + (w_screen[1][2] * shader_input.barycentric[1][Y]) + shader_input.barycentric[1][Z];
 	screen_barry[1][3] = (w_screen[0][3] * shader_input.barycentric[1][X]) + (w_screen[1][3] * shader_input.barycentric[1][Y]) + shader_input.barycentric[1][Z];
 
-	shader_input.w_screen[0][0] = screen_barry[0][0] * r_depth[0];
-	shader_input.w_screen[0][1] = screen_barry[0][1] * r_depth[1];
-	shader_input.w_screen[0][2] = screen_barry[0][2] * r_depth[2];
-	shader_input.w_screen[0][3] = screen_barry[0][3] * r_depth[3];
+	__m128 r_depth[4];
+	r_depth[0] = reciprocal(z_screen[0]);
+	r_depth[1] = reciprocal(z_screen[1]);
+	r_depth[2] = reciprocal(z_screen[2]);
+	r_depth[3] = reciprocal(z_screen[3]);
 
-	shader_input.w_screen[1][0] = screen_barry[1][0] * r_depth[0];
-	shader_input.w_screen[1][1] = screen_barry[1][1] * r_depth[1];
-	shader_input.w_screen[1][2] = screen_barry[1][2] * r_depth[2];
-	shader_input.w_screen[1][3] = screen_barry[1][3] * r_depth[3];
+	__m128 w_clip[2][4];
+	w_clip[0][0] = screen_barry[0][0] * r_depth[0];
+	w_clip[0][1] = screen_barry[0][1] * r_depth[1];
+	w_clip[0][2] = screen_barry[0][2] * r_depth[2];
+	w_clip[0][3] = screen_barry[0][3] * r_depth[3];
 
-	shader_input_& data = shader_input;
+	w_clip[1][0] = screen_barry[1][0] * r_depth[0];
+	w_clip[1][1] = screen_barry[1][1] * r_depth[1];
+	w_clip[1][2] = screen_barry[1][2] * r_depth[2];
+	w_clip[1][3] = screen_barry[1][3] * r_depth[3];
 
+	__m128i colour_out[4];
 	{
-
-
-		const vertex4_* gradients = data.gradients[0];
+		const vertex4_* gradients = shader_input.gradients[ATTRIBUTE_COLOUR];
 
 		__m128 red_float[4];
-		red_float[0] = (gradients[R].x * data.w_screen[0][0]) + (gradients[R].y * data.w_screen[1][0]) + gradients[R].z;
-		red_float[1] = (gradients[R].x * data.w_screen[0][1]) + (gradients[R].y * data.w_screen[1][1]) + gradients[R].z;
-		red_float[2] = (gradients[R].x * data.w_screen[0][2]) + (gradients[R].y * data.w_screen[1][2]) + gradients[R].z;
-		red_float[3] = (gradients[R].x * data.w_screen[0][3]) + (gradients[R].y * data.w_screen[1][3]) + gradients[R].z;
+		red_float[0] = (gradients[R].x * w_clip[0][0]) + (gradients[R].y * w_clip[1][0]) + gradients[R].z;
+		red_float[1] = (gradients[R].x * w_clip[0][1]) + (gradients[R].y * w_clip[1][1]) + gradients[R].z;
+		red_float[2] = (gradients[R].x * w_clip[0][2]) + (gradients[R].y * w_clip[1][2]) + gradients[R].z;
+		red_float[3] = (gradients[R].x * w_clip[0][3]) + (gradients[R].y * w_clip[1][3]) + gradients[R].z;
 
 		__m128 green_float[4];
-		green_float[0] = (gradients[G].x * data.w_screen[0][0]) + (gradients[G].y * data.w_screen[1][0]) + gradients[G].z;
-		green_float[1] = (gradients[G].x * data.w_screen[0][1]) + (gradients[G].y * data.w_screen[1][1]) + gradients[G].z;
-		green_float[2] = (gradients[G].x * data.w_screen[0][2]) + (gradients[G].y * data.w_screen[1][2]) + gradients[G].z;
-		green_float[3] = (gradients[G].x * data.w_screen[0][3]) + (gradients[G].y * data.w_screen[1][3]) + gradients[G].z;
+		green_float[0] = (gradients[G].x * w_clip[0][0]) + (gradients[G].y * w_clip[1][0]) + gradients[G].z;
+		green_float[1] = (gradients[G].x * w_clip[0][1]) + (gradients[G].y * w_clip[1][1]) + gradients[G].z;
+		green_float[2] = (gradients[G].x * w_clip[0][2]) + (gradients[G].y * w_clip[1][2]) + gradients[G].z;
+		green_float[3] = (gradients[G].x * w_clip[0][3]) + (gradients[G].y * w_clip[1][3]) + gradients[G].z;
 
 		__m128 blue_float[4];
-		blue_float[0] = (gradients[B].x * data.w_screen[0][0]) + (gradients[B].y * data.w_screen[1][0]) + gradients[B].z;
-		blue_float[1] = (gradients[B].x * data.w_screen[0][1]) + (gradients[B].y * data.w_screen[1][1]) + gradients[B].z;
-		blue_float[2] = (gradients[B].x * data.w_screen[0][2]) + (gradients[B].y * data.w_screen[1][2]) + gradients[B].z;
-		blue_float[3] = (gradients[B].x * data.w_screen[0][3]) + (gradients[B].y * data.w_screen[1][3]) + gradients[B].z;
+		blue_float[0] = (gradients[B].x * w_clip[0][0]) + (gradients[B].y * w_clip[1][0]) + gradients[B].z;
+		blue_float[1] = (gradients[B].x * w_clip[0][1]) + (gradients[B].y * w_clip[1][1]) + gradients[B].z;
+		blue_float[2] = (gradients[B].x * w_clip[0][2]) + (gradients[B].y * w_clip[1][2]) + gradients[B].z;
+		blue_float[3] = (gradients[B].x * w_clip[0][3]) + (gradients[B].y * w_clip[1][3]) + gradients[B].z;
 
 		red_float[0] = min_vec(max_vec(red_float[0], zero), colour_clamp);
 		red_float[1] = min_vec(max_vec(red_float[1], zero), colour_clamp);
@@ -181,10 +170,10 @@ void pixel_shader(
 		blue_int[2] = convert_int_trunc(blue_float[2]);
 		blue_int[3] = convert_int_trunc(blue_float[3]);
 
-		data.colour_out[0][0] = red_int[0] | (green_int[0] << 8) | (blue_int[0] << 16);
-		data.colour_out[0][1] = red_int[1] | (green_int[1] << 8) | (blue_int[1] << 16);
-		data.colour_out[0][2] = red_int[2] | (green_int[2] << 8) | (blue_int[2] << 16);
-		data.colour_out[0][3] = red_int[3] | (green_int[3] << 8) | (blue_int[3] << 16);
+		colour_out[0] = red_int[0] | (green_int[0] << 8) | (blue_int[0] << 16);
+		colour_out[1] = red_int[1] | (green_int[1] << 8) | (blue_int[1] << 16);
+		colour_out[2] = red_int[2] | (green_int[2] << 8) | (blue_int[2] << 16);
+		colour_out[3] = red_int[3] | (green_int[3] << 8) | (blue_int[3] << 16);
 	}
 
 	float4_ u_table[4];
@@ -192,19 +181,19 @@ void pixel_shader(
 
 
 	{
-		const vertex4_* gradients = data.gradients[1];
+		const vertex4_* gradients = shader_input.gradients[ATTRIBUTE_TEXCOORD];
 
 		__m128 u_axis[4];
-		u_axis[0] = (gradients[U].x * data.w_screen[0][0]) + (gradients[U].y * data.w_screen[1][0]) + gradients[U].z;
-		u_axis[1] = (gradients[U].x * data.w_screen[0][1]) + (gradients[U].y * data.w_screen[1][1]) + gradients[U].z;
-		u_axis[2] = (gradients[U].x * data.w_screen[0][2]) + (gradients[U].y * data.w_screen[1][2]) + gradients[U].z;
-		u_axis[3] = (gradients[U].x * data.w_screen[0][3]) + (gradients[U].y * data.w_screen[1][3]) + gradients[U].z;
+		u_axis[0] = (gradients[U].x * w_clip[0][0]) + (gradients[U].y * w_clip[1][0]) + gradients[U].z;
+		u_axis[1] = (gradients[U].x * w_clip[0][1]) + (gradients[U].y * w_clip[1][1]) + gradients[U].z;
+		u_axis[2] = (gradients[U].x * w_clip[0][2]) + (gradients[U].y * w_clip[1][2]) + gradients[U].z;
+		u_axis[3] = (gradients[U].x * w_clip[0][3]) + (gradients[U].y * w_clip[1][3]) + gradients[U].z;
 
 		__m128 v_axis[4];
-		v_axis[0] = (gradients[V].x * data.w_screen[0][0]) + (gradients[V].y * data.w_screen[1][0]) + gradients[V].z;
-		v_axis[1] = (gradients[V].x * data.w_screen[0][1]) + (gradients[V].y * data.w_screen[1][1]) + gradients[V].z;
-		v_axis[2] = (gradients[V].x * data.w_screen[0][2]) + (gradients[V].y * data.w_screen[1][2]) + gradients[V].z;
-		v_axis[3] = (gradients[V].x * data.w_screen[0][3]) + (gradients[V].y * data.w_screen[1][3]) + gradients[V].z;
+		v_axis[0] = (gradients[V].x * w_clip[0][0]) + (gradients[V].y * w_clip[1][0]) + gradients[V].z;
+		v_axis[1] = (gradients[V].x * w_clip[0][1]) + (gradients[V].y * w_clip[1][1]) + gradients[V].z;
+		v_axis[2] = (gradients[V].x * w_clip[0][2]) + (gradients[V].y * w_clip[1][2]) + gradients[V].z;
+		v_axis[3] = (gradients[V].x * w_clip[0][3]) + (gradients[V].y * w_clip[1][3]) + gradients[V].z;
 
 		store_u(u_axis[0], u_table[0].f);
 		store_u(u_axis[1], u_table[1].f);
@@ -217,7 +206,7 @@ void pixel_shader(
 		store_u(v_axis[3], v_table[3].f);
 	}
 
-	const texture_handler_& texture_handler = *data.texture_handlers[1];
+	const texture_handler_& texture_handler = *shader_input.texture_handler;
 
 	float2_ du;
 	du.x = (u_table[0].f[3] - u_table[0].f[0]) * (float)texture_handler.width;
@@ -227,7 +216,7 @@ void pixel_shader(
 	dv.x = (v_table[0].f[3] - v_table[0].f[0]) * (float)texture_handler.height;
 	dv.y = (v_table[3].f[0] - v_table[0].f[0]) * (float)texture_handler.height;
 
-	float area = abs((du.x * dv.y) - (du.y * dv.x))  * data.mip_level_bias;
+	float area = abs((du.x * dv.y) - (du.y * dv.x))  * shader_input.mip_level_bias;
 	unsigned long area_int = 1 + (unsigned long)(area + 0.5f);
 	__int32 i_mip_floor;
 	_BitScanReverse((unsigned long*)&i_mip_floor, area_int);
@@ -246,6 +235,7 @@ void pixel_shader(
 	const __m128i height_clamp = set_all(height - 1);
 	const __m128i width_shift = load_s(shift);
 
+	__m128i tex_out[4];
 	{
 		__m128 u_axis[4];
 		u_axis[0] = (load_u(u_table[0].f) * texture_width); // - half;
@@ -315,50 +305,37 @@ void pixel_shader(
 		texels_out[3][2] = texture_handler.texture[i_mip_floor][i_texels_in[3][2]];
 		texels_out[3][3] = texture_handler.texture[i_mip_floor][i_texels_in[3][3]];
 
-		data.colour_out[1][0] = load_u(texels_out[0]);
-		data.colour_out[1][1] = load_u(texels_out[1]);
-		data.colour_out[1][2] = load_u(texels_out[2]);
-		data.colour_out[1][3] = load_u(texels_out[3]);
+		tex_out[0] = load_u(texels_out[0]);
+		tex_out[1] = load_u(texels_out[1]);
+		tex_out[2] = load_u(texels_out[2]);
+		tex_out[3] = load_u(texels_out[3]);
 	}
 
-	__m128i model_colour = set_all(data.model_colour);
-
 	__m128i colour_buffer[4];
-	colour_buffer[0] = load(data.colour_buffer_begin + i_buffer + 0);
-	colour_buffer[1] = load(data.colour_buffer_begin + i_buffer + 4);
-	colour_buffer[2] = load(data.colour_buffer_begin + i_buffer + 8);
-	colour_buffer[3] = load(data.colour_buffer_begin + i_buffer + 12);
-
-	//__m128i z_mask[4];
-	//z_mask[0] = load_mask[(coverage_mask >> 0) & 0xf];
-	//z_mask[1] = load_mask[(coverage_mask >> 4) & 0xf];
-	//z_mask[2] = load_mask[(coverage_mask >> 8) & 0xf];
-	//z_mask[3] = load_mask[(coverage_mask >> 12) & 0xf];
+	colour_buffer[0] = load(shader_input.colour_buffer + i_buffer + 0);
+	colour_buffer[1] = load(shader_input.colour_buffer + i_buffer + 4);
+	colour_buffer[2] = load(shader_input.colour_buffer + i_buffer + 8);
+	colour_buffer[3] = load(shader_input.colour_buffer + i_buffer + 12);
 
 	colour_buffer[0] = _mm_andnot_si128(z_mask[0], colour_buffer[0]);
 	colour_buffer[1] = _mm_andnot_si128(z_mask[1], colour_buffer[1]);
 	colour_buffer[2] = _mm_andnot_si128(z_mask[2], colour_buffer[2]);
 	colour_buffer[3] = _mm_andnot_si128(z_mask[3], colour_buffer[3]);
 
-	colour_buffer[0] = add_uint8_saturate(colour_buffer[0], data.colour_out[0][0] & z_mask[0]);
-	colour_buffer[1] = add_uint8_saturate(colour_buffer[1], data.colour_out[0][1] & z_mask[1]);
-	colour_buffer[2] = add_uint8_saturate(colour_buffer[2], data.colour_out[0][2] & z_mask[2]);
-	colour_buffer[3] = add_uint8_saturate(colour_buffer[3], data.colour_out[0][3] & z_mask[3]);
+	colour_buffer[0] = add_uint8_saturate(colour_buffer[0], colour_out[0] & z_mask[0]);
+	colour_buffer[1] = add_uint8_saturate(colour_buffer[1], colour_out[1] & z_mask[1]);
+	colour_buffer[2] = add_uint8_saturate(colour_buffer[2], colour_out[2] & z_mask[2]);
+	colour_buffer[3] = add_uint8_saturate(colour_buffer[3], colour_out[3] & z_mask[3]);
 
-	colour_buffer[0] = add_uint8_saturate(colour_buffer[0], data.colour_out[1][0] & z_mask[0]);
-	colour_buffer[1] = add_uint8_saturate(colour_buffer[1], data.colour_out[1][1] & z_mask[1]);
-	colour_buffer[2] = add_uint8_saturate(colour_buffer[2], data.colour_out[1][2] & z_mask[2]);
-	colour_buffer[3] = add_uint8_saturate(colour_buffer[3], data.colour_out[1][3] & z_mask[3]);
+	colour_buffer[0] = add_uint8_saturate(colour_buffer[0], tex_out[0] & z_mask[0]);
+	colour_buffer[1] = add_uint8_saturate(colour_buffer[1], tex_out[1] & z_mask[1]);
+	colour_buffer[2] = add_uint8_saturate(colour_buffer[2], tex_out[2] & z_mask[2]);
+	colour_buffer[3] = add_uint8_saturate(colour_buffer[3], tex_out[3] & z_mask[3]);
 
-	//colour_buffer[0] = add_uint8_saturate(colour_buffer[0], model_colour & z_mask[0]);
-	//colour_buffer[1] = add_uint8_saturate(colour_buffer[1], model_colour & z_mask[1]);
-	//colour_buffer[2] = add_uint8_saturate(colour_buffer[2], model_colour & z_mask[2]);
-	//colour_buffer[3] = add_uint8_saturate(colour_buffer[3], model_colour & z_mask[3]);
-
-	store(colour_buffer[0], data.colour_buffer_begin + i_buffer + 0);
-	store(colour_buffer[1], data.colour_buffer_begin + i_buffer + 4);
-	store(colour_buffer[2], data.colour_buffer_begin + i_buffer + 8);
-	store(colour_buffer[3], data.colour_buffer_begin + i_buffer + 12);
+	store(colour_buffer[0], shader_input.colour_buffer + i_buffer + 0);
+	store(colour_buffer[1], shader_input.colour_buffer + i_buffer + 4);
+	store(colour_buffer[2], shader_input.colour_buffer + i_buffer + 8);
+	store(colour_buffer[3], shader_input.colour_buffer + i_buffer + 12);
 }
 
 
@@ -371,13 +348,110 @@ void Process_Fragments(
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
+	static const unsigned __int32 coverage_mask = 0xffff;
 
 	{
-		const unsigned __int32 coverage_mask = 0xffff;
-		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT];
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64];
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
-			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][i_fragment];
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][i_fragment];
+
+			__int32 w_table_16[2][4 * 4];
+			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+				__m128i temp[4];
+
+				__m128i w_row = set_all(raster_fragment.w[i_edge]);
+				temp[0] = w_row + load_u(raster_output.reject_table[2][i_edge][0]);
+				temp[1] = w_row + load_u(raster_output.reject_table[2][i_edge][1]);
+				temp[2] = w_row + load_u(raster_output.reject_table[2][i_edge][2]);
+				temp[3] = w_row + load_u(raster_output.reject_table[2][i_edge][3]);
+
+				store_u(temp[0], w_table_16[i_edge] + (0 << 2));
+				store_u(temp[1], w_table_16[i_edge] + (1 << 2));
+				store_u(temp[2], w_table_16[i_edge] + (2 << 2));
+				store_u(temp[3], w_table_16[i_edge] + (3 << 2));
+			}
+			for (__int32 i_tile = 0; i_tile < (4 * 4); i_tile++) {
+
+				__int32 w_table_4[2][4 * 4];
+				for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+					__m128i temp[4];
+
+					__m128i w_row = set_all(w_table_16[i_edge][i_tile]);
+					temp[0] = w_row + load_u(raster_output.reject_table[1][i_edge][0]);
+					temp[1] = w_row + load_u(raster_output.reject_table[1][i_edge][1]);
+					temp[2] = w_row + load_u(raster_output.reject_table[1][i_edge][2]);
+					temp[3] = w_row + load_u(raster_output.reject_table[1][i_edge][3]);
+
+					store_u(temp[0], w_table_4[i_edge] + (0 << 2));
+					store_u(temp[1], w_table_4[i_edge] + (1 << 2));
+					store_u(temp[2], w_table_4[i_edge] + (2 << 2));
+					store_u(temp[3], w_table_4[i_edge] + (3 << 2));
+				}
+
+				const __int32 i_buffer_16 = raster_fragment.i_buffer + (i_tile * 16 * 16);
+
+				for (__int32 i_tile = 0; i_tile < (4 * 4); i_tile++) {
+
+					__m128i bazza[3][4];
+
+					for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+						__m128i w_row = set_all(w_table_4[i_edge][i_tile]);
+						bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
+						bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
+						bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
+						bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
+					}
+					const __int32 i_buffer = i_buffer_16 + (i_tile * 4 * 4);
+					pixel_shader(i_buffer, coverage_mask, bazza, shader_input);
+				}
+			}
+		}
+	}
+	//===============================================================================================
+	{
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16];
+		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
+
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][i_fragment];
+
+			__int32 w_table[2][4 * 4];
+			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+				__m128i temp[4];
+
+				__m128i w_row = set_all(raster_fragment.w[i_edge]);
+				temp[0] = w_row + load_u(raster_output.reject_table[1][i_edge][0]);
+				temp[1] = w_row + load_u(raster_output.reject_table[1][i_edge][1]);
+				temp[2] = w_row + load_u(raster_output.reject_table[1][i_edge][2]);
+				temp[3] = w_row + load_u(raster_output.reject_table[1][i_edge][3]);
+
+				store_u(temp[0], w_table[i_edge] + (0 << 2));
+				store_u(temp[1], w_table[i_edge] + (1 << 2));
+				store_u(temp[2], w_table[i_edge] + (2 << 2));
+				store_u(temp[3], w_table[i_edge] + (3 << 2));
+			}
+			for (__int32 i_tile = 0; i_tile < (4 *4); i_tile++) {
+
+				__m128i bazza[3][4];
+
+				for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+					__m128i w_row = set_all(w_table[i_edge][i_tile]);
+					bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
+					bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
+					bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
+					bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
+				}
+				const __int32 i_buffer = raster_fragment.i_buffer + (i_tile * 4 * 4);
+				pixel_shader(i_buffer, coverage_mask, bazza, shader_input);
+			}
+		}
+	}
+	//===============================================================================================
+	{
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4];
+		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
+
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][i_fragment];
 			__m128i bazza[3][4];
 
 			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
@@ -390,9 +464,11 @@ void Process_Fragments(
 			pixel_shader(raster_fragment.i_buffer, coverage_mask, bazza, shader_input);
 		}
 	}
+	//===============================================================================================
 	{
-		const __int32 n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
-		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
+		const __int32 start = raster_output_::MAX_FRAGMENTS - 1;
+		const __int32 end = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
+		for (__int32 i_fragment = start; i_fragment > end; i_fragment--) {
 
 			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][i_fragment];
 			__m128i bazza[3][4];
@@ -408,6 +484,7 @@ void Process_Fragments(
 			pixel_shader(raster_fragment.i_buffer, raster_fragment.coverage_mask, bazza, shader_input);
 		}
 	}
+	//===============================================================================================
 	{
 		const __int32 n_fragments = raster_output.n_fragments_COMPLETE;
 		__int32 n_depth_fragments = 0;
@@ -426,13 +503,88 @@ void Process_Fragments(
 */
 void Vertex_Lighting_NULL(
 
-	const __int32 n_triangles,
 	const vertex_light_manager_& vertex_light_manager,
-	const float4_ positions[4][3],
-	float4_ colour[4][3]
+	const float3_ position[3],
+	float4_ colour[3]
 
 ) {
 
+}
+
+/*
+==================
+==================
+*/
+void Vertex_Lighting_PLAYER(
+
+	const vertex_light_manager_& vertex_light_manager,
+	const float3_ position[3],
+	float4_ colour[3]
+
+) {
+
+	static const float r_screen_scale_x = 1.0f / screen_scale_x;
+	static const float r_screen_scale_y = 1.0f / screen_scale_y;
+	const float attenuation_factor = 800.0f;
+	const float specular_scale = 100.0f;
+	const float diffuse_scale = 20.0f;
+
+	float3_ position_clip[3];
+
+	for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
+
+		float depth = 1.0f / position[i_vertex].z;
+		position_clip[i_vertex].x = ((position[i_vertex].x - screen_shift_x) * r_screen_scale_x) * depth;
+		position_clip[i_vertex].y = ((position[i_vertex].y - screen_shift_y) * r_screen_scale_y) * depth;
+		position_clip[i_vertex].z = depth;
+	}
+
+	float3_ a;
+	a.x = position_clip[1].x - position_clip[0].x;
+	a.y = position_clip[1].y - position_clip[0].y;
+	a.z = position_clip[1].z - position_clip[0].z;
+
+	float3_ b;
+	b.x = position_clip[2].x - position_clip[0].x;
+	b.y = position_clip[2].y - position_clip[0].y;
+	b.z = position_clip[2].z - position_clip[0].z;
+
+	float3_ normal;
+	normal.x = (a.y * b.z) - (a.z * b.y);
+	normal.y = (a.z * b.x) - (a.x * b.z);
+	normal.z = (a.x * b.y) - (a.y * b.x);
+
+	float d = (normal.x * normal.x) + (normal.y * normal.y) + (normal.z * normal.z);
+	float mag = store_s(_mm_rsqrt_ss(load_s(d)));
+	normal.x *= mag;
+	normal.y *= mag;
+	normal.z *= mag;
+
+	float3_ light_position = { 0.0f, 0.0f, 0.0f };
+	float3_ light_colour = { 100.0f, 100.0f, 10.0f };
+
+	for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
+
+		float3_ light_ray = position_clip[i_vertex] - light_position;
+
+		float d = (light_ray.x * light_ray.x) + (light_ray.y * light_ray.y) + (light_ray.z * light_ray.z);
+		float mag = store_s(_mm_rsqrt_ss(load_s(d)));
+		light_ray.x *= mag;
+		light_ray.y *= mag;
+		light_ray.z *= mag;
+
+		float dot = (normal.x * light_ray.x) + (normal.y * light_ray.y) + (normal.z * light_ray.z);
+		dot = dot > 0.0f ? dot : 0.0f;
+		dot = (dot * dot) * mag;
+
+		colour[i_vertex].x += dot * specular_scale * light_colour.r;
+		colour[i_vertex].y += dot * specular_scale * light_colour.g;
+		colour[i_vertex].z += dot * specular_scale * light_colour.b;
+
+		colour[i_vertex].x += mag * diffuse_scale * light_colour.r;
+		colour[i_vertex].y += mag * diffuse_scale * light_colour.g;
+		colour[i_vertex].z += mag * diffuse_scale * light_colour.b;
+	}
 }
 
 /*
@@ -829,23 +981,18 @@ void Vertex_Lighting_REM(
 */
 void Shade_Vertex_Colour_Simple(
 
-	const __int32 n_triangles,
 	const command_buffer_& render_buffer,
-	const draw_call_& draw_buffer,
-	const bin_triangle_data_ bin_triangle_data[4],
-	float4_ vertex_buffer[4][3]
+	const draw_call_& draw_call,
+	const __int32 i_model,
+	float4_ vertices[3]
 
 ) {
 
-	for (__int32 i_triangle = 0; i_triangle < n_triangles; i_triangle++) {
-		const __int32 i_model = bin_triangle_data[i_triangle].i_model;
-		float4_* vertex_colour = vertex_buffer[i_triangle];
-		for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
+	for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
 
-			vertex_colour[i_vertex].x += draw_buffer.colour[i_model].r;
-			vertex_colour[i_vertex].y += draw_buffer.colour[i_model].g;
-			vertex_colour[i_vertex].z += draw_buffer.colour[i_model].b;
-		}
+		vertices[i_vertex].x += draw_call.colour[i_model].r;
+		vertices[i_vertex].y += draw_call.colour[i_model].g;
+		vertices[i_vertex].z += draw_call.colour[i_model].b;
 	}
 }
 
@@ -855,28 +1002,32 @@ void Shade_Vertex_Colour_Simple(
 */
 void Shade_Vertex_Colour(
 
-	const __int32 n_triangles,
 	const command_buffer_& render_buffer,
 	const draw_call_& draw_call,
-	const bin_triangle_data_ bin_triangle_data[4],
-	float4_ vertex_buffer[4][3]
+	const __int32 i_model,
+	float4_ vertices[3]
 
 ) {
-	//const __int32 VERTEX_COLOUR = FIRST_ATTRIBUTE + 0;
 
-	for (__int32 i_triangle = 0; i_triangle < n_triangles; i_triangle++) {
-		const __int32 i_model = bin_triangle_data[i_triangle].i_model;
-		float4_* vertex = vertex_buffer[i_triangle];
-		for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
-			Vector_X_Matrix(vertex[i_vertex], draw_call.m_vertex_colour[i_model], vertex[i_vertex]);
+	static const __m128 max = set_all(255.0f);
+	static const __m128 min = set_all(0.0f);
 
-			float3_ colour = draw_call.colour[i_model];
+	for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
+		Vector_X_Matrix(vertices[i_vertex], draw_call.m_vertex_colour[i_model], vertices[i_vertex]);
 
-			vertex[i_vertex].x = colour.r * vertex[i_vertex].z;
-			vertex[i_vertex].y = colour.g * vertex[i_vertex].z;
-			vertex[i_vertex].z = colour.b * vertex[i_vertex].z;
-		}
+		float3_ colour = draw_call.colour[i_model];
+
+		vertices[i_vertex].x = colour.r * vertices[i_vertex].z;
+		vertices[i_vertex].y = colour.g * vertices[i_vertex].z;
+		vertices[i_vertex].z = colour.b * vertices[i_vertex].z;
+
+		//__m128 clamp = load_u(vertices[i_vertex].f);
+		//clamp = min_vec(max_vec(clamp, min), max);
+		//store_u(clamp, vertices[i_vertex].f);
 	}
+	
+
+	
 }
 /*
 ==================
@@ -884,19 +1035,14 @@ void Shade_Vertex_Colour(
 */
 void Shade_Vertex_Texture(
 
-	const __int32 n_triangles,
 	const command_buffer_& render_buffer,
 	const draw_call_& draw_call,
-	const bin_triangle_data_ bin_triangle_data[4],
-	float4_ vertex_buffer[4][3]
+	const __int32 i_model,
+	float4_ vertices[3]
 
 ) {
 
-	for (__int32 i_triangle = 0; i_triangle < n_triangles; i_triangle++) {
-		const __int32 i_model = bin_triangle_data[i_triangle].i_model;
-		float4_* vertex = vertex_buffer[i_triangle];
-		for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
-			Vector_X_Matrix(vertex[i_vertex], draw_call.m_vertex_texture[i_model], vertex[i_vertex]);
-		}
+	for (__int32 i_vertex = 0; i_vertex < NUM_VERTICES; i_vertex++) {
+		Vector_X_Matrix(vertices[i_vertex], draw_call.m_vertex_texture[i_model], vertices[i_vertex]);
 	}
 }
