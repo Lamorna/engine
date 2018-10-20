@@ -231,39 +231,11 @@ void emit_16x16(
 
 
 	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16];
-	//raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].coverage_mask = draw_mask;
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].w[0] = w_in[0][i_tile_in];
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].w[1] = w_in[1][i_tile_in];
 	n_fragments++;
 
-	//__int32 w_table[3][4 * 4];
-
-	//for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
-	//	__m128i w_row = set_all(w_in[i_edge][i_tile_in]);
-	//	__m128i temp[4];
-	//	temp[0] = w_row + load_u(reject_table[1][i_edge][0]);
-	//	temp[1] = w_row + load_u(reject_table[1][i_edge][1]);
-	//	temp[2] = w_row + load_u(reject_table[1][i_edge][2]);
-	//	temp[3] = w_row + load_u(reject_table[1][i_edge][3]);
-
-	//	store_u(temp[0], w_table[i_edge] + (0 << 2));
-	//	store_u(temp[1], w_table[i_edge] + (1 << 2));
-	//	store_u(temp[2], w_table[i_edge] + (2 << 2));
-	//	store_u(temp[3], w_table[i_edge] + (3 << 2));
-	//}
-	//const __int32 i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
-	//for (__int32 i_tile = 0; i_tile < 16; i_tile++) {
-
-	//	//emit_4x4(i_buffer, i_tile, w_table, reject_table, raster_output);
-
-	//	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT];
-	//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].coverage_mask = 0x0;
-	//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].i_buffer = i_buffer + (i_tile * 4 * 4);
-	//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].w[0] = w_table[0][i_tile];
-	//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].w[1] = w_table[1][i_tile];
-	//	n_fragments++;
-	//}
 }
 
 /*
@@ -280,76 +252,57 @@ void emit_64x64(
 ) {
 
 	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64];
-	//raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].coverage_mask = draw_mask;
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].i_buffer = i_buffer_in;
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].w[0] = w_in[0];
 	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].w[1] = w_in[1];
 	n_fragments++;
 
-	//__int32 w_table[3][4 * 4];
-
-	//for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
-	//	__m128i w_row = set_all(w_in[i_edge]);
-	//	__m128i temp[4];
-	//	temp[0] = w_row + load_u(reject_table[2][i_edge][0]);
-	//	temp[1] = w_row + load_u(reject_table[2][i_edge][1]);
-	//	temp[2] = w_row + load_u(reject_table[2][i_edge][2]);
-	//	temp[3] = w_row + load_u(reject_table[2][i_edge][3]);
-
-	//	store_u(temp[0], w_table[i_edge] + (0 << 2));
-	//	store_u(temp[1], w_table[i_edge] + (1 << 2));
-	//	store_u(temp[2], w_table[i_edge] + (2 << 2));
-	//	store_u(temp[3], w_table[i_edge] + (3 << 2));
-	//}
-	//for (__int32 i_tile = 0; i_tile < 16; i_tile++) {
-	//	emit_16x16(i_buffer_in, i_tile, w_table, reject_table, raster_output);
-	//}
 }
 
 /*
 ==================
 ==================
 */
-void process_4x4(
-
-	const __int32 i_buffer_in,
-	const __int32 i_tile_in,
-	__int32 w_in[3][16],
-	__int32 reject_table[3][3][4][4],
-	raster_output_& raster_output
-
-) {
-
-	__m128i bazza[3][4];
-
-	unsigned __int32 draw_mask = -1;
-
-	for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
-
-		unsigned __int32 temp_mask = 0x0;
-		__m128i w_row = set_all(w_in[i_edge][i_tile_in]);
-		bazza[i_edge][0] = w_row + load_u(reject_table[0][i_edge][0]);
-		bazza[i_edge][1] = w_row + load_u(reject_table[0][i_edge][1]);
-		bazza[i_edge][2] = w_row + load_u(reject_table[0][i_edge][2]);
-		bazza[i_edge][3] = w_row + load_u(reject_table[0][i_edge][3]);
-
-		temp_mask |= store_mask(bazza[i_edge][0]) << (0 << 2);
-		temp_mask |= store_mask(bazza[i_edge][1]) << (1 << 2);
-		temp_mask |= store_mask(bazza[i_edge][2]) << (2 << 2);
-		temp_mask |= store_mask(bazza[i_edge][3]) << (3 << 2);
-
-		draw_mask &= temp_mask;
-	}
-	const __int32 i_buffer = i_buffer_in + (i_tile_in * 4 * 4);
-
-	__int32& n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
-	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].coverage_mask = draw_mask;
-	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].i_buffer = i_buffer;
-	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[0] = w_in[0][i_tile_in];
-	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[1] = w_in[1][i_tile_in];
-	//n_fragments++;
-	n_fragments += draw_mask != 0x0;
-}
+//void process_4x4(
+//
+//	const __int32 i_buffer_in,
+//	const __int32 i_tile_in,
+//	__int32 w_in[3][16],
+//	__int32 reject_table[3][3][4][4],
+//	raster_output_& raster_output
+//
+//) {
+//
+//	__m128i bazza[3][4];
+//
+//	unsigned __int32 draw_mask = -1;
+//
+//	for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
+//
+//		unsigned __int32 temp_mask = 0x0;
+//		__m128i w_row = set_all(w_in[i_edge][i_tile_in]);
+//		bazza[i_edge][0] = w_row + load_u(reject_table[0][i_edge][0]);
+//		bazza[i_edge][1] = w_row + load_u(reject_table[0][i_edge][1]);
+//		bazza[i_edge][2] = w_row + load_u(reject_table[0][i_edge][2]);
+//		bazza[i_edge][3] = w_row + load_u(reject_table[0][i_edge][3]);
+//
+//		temp_mask |= store_mask(bazza[i_edge][0]) << (0 << 2);
+//		temp_mask |= store_mask(bazza[i_edge][1]) << (1 << 2);
+//		temp_mask |= store_mask(bazza[i_edge][2]) << (2 << 2);
+//		temp_mask |= store_mask(bazza[i_edge][3]) << (3 << 2);
+//
+//		draw_mask &= temp_mask;
+//	}
+//	const __int32 i_buffer = i_buffer_in + (i_tile_in * 4 * 4);
+//
+//	__int32& n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
+//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].coverage_mask = draw_mask;
+//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].i_buffer = i_buffer;
+//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[0] = w_in[0][i_tile_in];
+//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[1] = w_in[1][i_tile_in];
+//	//n_fragments++;
+//	n_fragments += draw_mask != 0x0;
+//}
 
 /*
 ==================
@@ -400,8 +353,6 @@ void process_16x16(
 			_BitScanForward(&i_tile, accept_mask);
 			accept_mask ^= 0x1 << i_tile;
 
-			//emit_4x4(i_buffer, i_tile, w_table, reject_table, raster_output);
-
 			__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4];
 			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].coverage_mask = 0x0;
 			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].i_buffer = i_buffer + (i_tile * 4 * 4);
@@ -417,8 +368,6 @@ void process_16x16(
 			unsigned long i_tile;
 			_BitScanForward(&i_tile, partial_accept_mask);
 			partial_accept_mask ^= 0x1 << i_tile;
-
-			//process_4x4(i_buffer, i_tile, w_table, reject_table, raster_output);
 
 			__m128i bazza[3][4];
 
@@ -446,7 +395,6 @@ void process_16x16(
 			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].i_buffer = i_buffer + (i_tile * 4 * 4);
 			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[0] = w_table[0][i_tile];
 			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[1] = w_table[1][i_tile];
-			//n_fragments++;
 			n_fragments -= draw_mask != 0x0;
 		}
 	}
@@ -738,6 +686,13 @@ void Rasteriser(
 
 			y_reject += one;
 		}
+		
+		{
+			__int32 step_x = (__int32)raster_data.step_x[i_edge] * 4;
+			__int32 step_y = (__int32)raster_data.step_y[i_edge] * 4;
+			raster_output.reject_step[i_edge][X] = raster_data.is_offset[i_edge][X] ? -step_x : step_x;
+			raster_output.reject_step[i_edge][Y] = raster_data.is_offset[i_edge][X] ? -step_y : step_y;
+		}
 	}
 
 	__int32 i_tile = 0;
@@ -758,6 +713,7 @@ void Rasteriser(
 			);
 
 			i_tile += (display_::TILE_SIZE * display_::TILE_SIZE);
+			//i_tile++;
 		}
 	}
 }

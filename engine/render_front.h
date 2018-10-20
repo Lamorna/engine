@@ -62,22 +62,6 @@ struct bin_triangle_data_ {
 	__int32 draw_id;
 };
 
-
-
-struct shader_input_ {
-
-	__int32 i_triangle;
-	float mip_level_bias;
-	unsigned __int32* colour_buffer;
-	float* depth_buffer;
-	const texture_handler_* texture_handler;
-	const draw_call_* draw_call;
-	__m128 r_area;
-	__m128 z_delta[3];
-	__m128 barycentric[2][3];
-	vertex4_ gradients[NUM_VERTEX_ATTRIBUTES][4];
-};
-
 struct light_source_ {
 
 	__int32 id;
@@ -273,12 +257,39 @@ struct display_ {
 	CACHE_ALIGN unsigned __int32 colour_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
 	CACHE_ALIGN float depth_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
 
+	float depth_tiles_4x4[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (4 * 4)];
+	float depth_tiles_16x16[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (16 * 16)];
+
 	HWND handle_window;
 	IDirect3DDevice9* d3d9_device;
 	IDirect3DSurface9* d3d9_surface;
 	D3DLOCKED_RECT locked_rect;
 
 	raster_output_ raster_output[thread_pool_::MAX_WORKER_THREADS];
+};
+
+struct shader_input_ {
+
+	__int32 i_triangle;
+	float mip_level_bias;
+	unsigned __int32* colour_buffer;
+	float* depth_buffer;
+	const texture_handler_* texture_handler;
+	const draw_call_* draw_call;
+	__m128 r_area;
+	__m128 z_delta[3];
+	__m128 barycentric[2][3];
+	vertex4_ gradients[NUM_VERTEX_ATTRIBUTES][4];
+
+	float z_max;
+	float* depth_tiles_4x4;
+	float* depth_tiles_16x16;
+	float depth_interpolants[3];
+	__int32 x;
+	__int32 y;
+	bool is_test;
+	unsigned __int64 tile_mask_16x16;
+
 };
 
 //======================================================================

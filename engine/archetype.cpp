@@ -858,7 +858,7 @@ void COMPONENT_Populate_Table(
 			component_id_::BASE,
 			component_id_::COLOUR,
 			component_id_::SMALL_MODEL_ID,
-			component_id_::DRAW,
+			//component_id_::DRAW,
 
 		};
 
@@ -899,7 +899,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::BASE;
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
-		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
+		//component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
 
@@ -924,8 +924,8 @@ void COMPONENT_Populate_Table(
 
 		small_model_id[i_model].id = i_model;
 
-		draw[i_model].draw_id = draw_id;
-		draw[i_model].model_id = model_::id_::SKY_BOX;
+		//draw[i_model].draw_id = draw_id;
+		//draw[i_model].model_id = model_::id_::SKY_BOX;
 
 		draw_call_& draw_call = draw_calls[draw_id];
 

@@ -62,6 +62,8 @@ struct raster_output_ {
 	raster_fragment_* raster_fragment[NUM_ACCEPT_TYPES];
 	raster_fragment_ base_fragments[MAX_FRAGMENTS];
 
+	__int32 reject_step[3][2];
+
 };
 
 void Raster_Setup(

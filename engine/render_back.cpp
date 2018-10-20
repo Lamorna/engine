@@ -19,13 +19,26 @@ void Clear_Tile_Buffer(
 
 ) {
 	//const __m128 zero_depth = set_all(FLT_MAX);
-	const __m128 zero_depth = set_all(-1.0f);
+	const __m128 zero_depth = set_all(0.0f);
 	const __m128i zero_colour = set_all_bits();
 
 	for (__int32 i = 0; i < display_::BIN_SIZE * display_::BIN_SIZE; i += 4) {
 
 		store(zero_depth, display.depth_buffer_bin[i_thread] + i);
 		store(zero_colour, display.colour_buffer_bin[i_thread] + i);
+	}
+
+	{
+		const __int32 size = (display_::BIN_SIZE * display_::BIN_SIZE) / (4 * 4);
+		for (__int32 i = 0; i < size; i += 4) {
+			store(zero_depth, display.depth_tiles_4x4[i_thread] + i);
+		}
+	}
+	{
+		const __int32 size = (display_::BIN_SIZE * display_::BIN_SIZE) / (16 * 16);
+		for (__int32 i = 0; i < size; i += 4) {
+			store(zero_depth, display.depth_tiles_16x16[i_thread] + i);
+		}
 	}
 }
 
@@ -208,9 +221,16 @@ void Process_Bin_Triangles(
 	shader_input.depth_buffer = display.depth_buffer_bin[i_thread];
 	shader_input.colour_buffer = display.colour_buffer_bin[i_thread];
 
+	shader_input.depth_tiles_4x4 = display.depth_tiles_4x4[i_thread];
+	shader_input.depth_tiles_16x16 = display.depth_tiles_16x16[i_thread];
+
 	int2_ bin_centre;
 	bin_centre.x = bin_origin.x + display_::TILE_SIZE;
 	bin_centre.y = bin_origin.y + display_::TILE_SIZE;
+
+	__m128 origin[2];
+	origin[X] = convert_float(set_all(bin_origin.x));
+	origin[Y] = convert_float(set_all(bin_origin.y));
 
 	for (__int32 i_thread_entry = 0; i_thread_entry < n_threads; i_thread_entry++) {
 
@@ -224,8 +244,6 @@ void Process_Bin_Triangles(
 			const draw_call_& draw_call = command_buffer.draw_calls[draw_id];
 			shader_input.draw_call = &draw_call;
 
-			float r_area[4];
-			float z_delta[3][4];
 			for (__int32 i_triangle_4 = 0; i_triangle_4 < n_triangles; i_triangle_4 += 4) {
 
 				__int32 n = min(n_triangles - i_triangle_4, 4);
@@ -236,12 +254,48 @@ void Process_Bin_Triangles(
 						position[i_vertex][i_triangle] = load_u(screen_bin.bin_triangle[i_triangle_read + i_triangle].position[i_vertex].f);
 					}
 					Transpose(position[i_vertex]);
+
+					position[i_vertex][X] -= origin[X];
+					position[i_vertex][Y] -= origin[Y];
+				}
+
+				__int32 current = 1, next = 2;
+				__m128 cross_products[3][3];
+				for (__int32 i = 0; i < 3; i++) {
+
+					cross_products[i][X] = position[current][Y] - position[next][Y];
+					cross_products[i][Y] = position[next][X] - position[current][X];
+					cross_products[i][Z] = (position[current][X] * position[next][Y]) - (position[current][Y] * position[next][X]);
+					current = next;
+					next = (next + 1) % 3;
 				}
 
 				__m128 area =
-					((position[1][X] - position[0][X]) * (position[2][Y] - position[0][Y])) -
-					((position[1][Y] - position[0][Y]) * (position[2][X] - position[0][X]));
-				store_u(reciprocal(area), r_area);
+					(cross_products[0][X] * position[0][X]) +
+					(cross_products[0][Y] * position[0][Y]) +
+					(cross_products[0][Z]);
+
+				__m128 r_area = reciprocal(area);
+				float recip_area[4];
+				store_u(reciprocal(area), recip_area);
+
+				__m128 matrix_w[3][3];
+				for (__int32 i = 0; i < 3; i++) {
+
+					matrix_w[i][X] = cross_products[X][i] * r_area;
+					matrix_w[i][Y] = cross_products[Y][i] * r_area;
+					matrix_w[i][Z] = cross_products[Z][i] * r_area;
+				}
+
+				__m128 depth_interpolants[3];
+				depth_interpolants[X] = (position[0][Z] * matrix_w[0][0]) + (position[1][Z] * matrix_w[0][1]) + (position[2][Z] * matrix_w[0][2]);
+				depth_interpolants[Y] = (position[0][Z] * matrix_w[1][0]) + (position[1][Z] * matrix_w[1][1]) + (position[2][Z] * matrix_w[1][2]);
+				depth_interpolants[Z] = (position[0][Z] * matrix_w[2][0]) + (position[1][Z] * matrix_w[2][1]) + (position[2][Z] * matrix_w[2][2]);
+
+				float z_interpolants[3][4];
+				store_u(depth_interpolants[X], z_interpolants[X]);
+				store_u(depth_interpolants[Y], z_interpolants[Y]);
+				store_u(depth_interpolants[Z], z_interpolants[Z]);
 
 				__m128 depth_delta[3];
 				depth_delta[0] = position[2][Z] - position[0][Z];
@@ -255,6 +309,7 @@ void Process_Bin_Triangles(
 				depth_delta[1] &= is_depth_write;
 				depth_delta[2] &= is_depth_write;
 
+				float z_delta[3][4];
 				store_u(depth_delta[0], z_delta[0]);
 				store_u(depth_delta[1], z_delta[1]);
 				store_u(depth_delta[2], z_delta[2]);
@@ -350,8 +405,12 @@ void Process_Bin_Triangles(
 					shader_input.z_delta[Y] = set_all(z_delta[1][i_triangle]);
 					shader_input.z_delta[Z] = set_all(z_delta[2][i_triangle]);
 
+					shader_input.depth_interpolants[X] = z_interpolants[X][i_triangle];
+					shader_input.depth_interpolants[Y] = z_interpolants[Y][i_triangle];
+					shader_input.depth_interpolants[Z] = z_interpolants[Z][i_triangle];
+
 					static const float r_fixed_scale = 1.0f / fixed_point_scale_g;
-					shader_input.r_area = set_all(r_area[i_triangle] * r_fixed_scale);
+					shader_input.r_area = set_all(recip_area[i_triangle] * r_fixed_scale);
 
 					shader_input.i_triangle = i_triangle;
 

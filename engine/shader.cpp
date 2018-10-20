@@ -6,6 +6,7 @@
 
 static const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
 
+static const unsigned __int64 one_bit_64 = 0x1;
 
 
 
@@ -29,6 +30,7 @@ void pixel_shader(
 	static const __m128i zero_int = set_zero_si128();
 	static const __m128 colour_clamp = broadcast(load_s(255.0f));
 
+
 	unsigned __int32 depth_mask = 0x0;
 
 	__m128 w_screen[2][4];
@@ -48,6 +50,33 @@ void pixel_shader(
 	z_screen[2] = (shader_input.z_delta[X] * w_screen[0][2]) + (shader_input.z_delta[Y] * w_screen[1][2]) + shader_input.z_delta[Z];
 	z_screen[3] = (shader_input.z_delta[X] * w_screen[0][3]) + (shader_input.z_delta[Y] * w_screen[1][3]) + shader_input.z_delta[Z];
 
+	{
+		//if (shader_input.is_test) {
+
+		//	__m128 x = convert_float(set_all(shader_input.x));
+		//	__m128 y = convert_float(set_all(shader_input.y));
+		//	y += set_all(0.5f);
+		//	x += set_all(0.5f);
+		//	x += set(0.0f, 1.0f, 2.0f, 3.0f);
+
+		//	__m128 y_block[4];
+		//	y_block[0] = y;
+		//	y_block[1] = y + one;
+		//	y_block[2] = y + two;
+		//	y_block[3] = y + three;
+
+		//	__m128 z_interpolant[3];
+		//	z_interpolant[X] = set_all(shader_input.depth_interpolants[X]);
+		//	z_interpolant[Y] = set_all(shader_input.depth_interpolants[Y]);
+		//	z_interpolant[Z] = set_all(shader_input.depth_interpolants[Z]);
+
+		//	z_screen[0] = (z_interpolant[X] * x) + (z_interpolant[Y] * y_block[0]) + z_interpolant[Z];
+		//	z_screen[1] = (z_interpolant[X] * x) + (z_interpolant[Y] * y_block[1]) + z_interpolant[Z];
+		//	z_screen[2] = (z_interpolant[X] * x) + (z_interpolant[Y] * y_block[2]) + z_interpolant[Z];
+		//	z_screen[3] = (z_interpolant[X] * x) + (z_interpolant[Y] * y_block[3]) + z_interpolant[Z];
+		//}
+	}
+
 	__m128i pixel_mask[4];
 	pixel_mask[0] = load_mask[(coverage_mask >> 0) & 0xf];
 	pixel_mask[1] = load_mask[(coverage_mask >> 4) & 0xf];
@@ -66,14 +95,12 @@ void pixel_shader(
 	z_mask[2] = (z_screen[2] > z_buffer[2]) & pixel_mask[2];
 	z_mask[3] = (z_screen[3] > z_buffer[3]) & pixel_mask[3];
 
+
 	depth_mask |= store_mask(z_mask[0]) << 0;
 	depth_mask |= store_mask(z_mask[1]) << 4;
 	depth_mask |= store_mask(z_mask[2]) << 8;
 	depth_mask |= store_mask(z_mask[3]) << 12;
 
-	if (depth_mask == 0x0) {
-		return;
-	}
 
 	__m128 z_write[4];
 	z_write[0] = blend(z_screen[0], z_buffer[0], z_mask[0]);
@@ -81,10 +108,34 @@ void pixel_shader(
 	z_write[2] = blend(z_screen[2], z_buffer[2], z_mask[2]);
 	z_write[3] = blend(z_screen[3], z_buffer[3], z_mask[3]);
 
+	{
+		__m128 z_max;
+		z_max = z_write[0];
+		z_max = min_vec(z_write[1], z_max);
+		z_max = min_vec(z_write[2], z_max);
+		z_max = min_vec(z_write[3], z_max);
+
+		__m128 z_out = z_max;
+		z_max = rotate_left(z_max);
+		z_out = min_vec(z_max, z_out);
+		z_max = rotate_left(z_max);
+		z_out = min_vec(z_max, z_out);
+		z_max = rotate_left(z_max);
+		z_out = min_vec(z_max, z_out);
+
+		shader_input.z_max = store_s(z_out);
+	}
+
+
 	store(z_write[0], shader_input.depth_buffer + i_buffer + 0);
 	store(z_write[1], shader_input.depth_buffer + i_buffer + 4);
 	store(z_write[2], shader_input.depth_buffer + i_buffer + 8);
 	store(z_write[3], shader_input.depth_buffer + i_buffer + 12);
+
+
+	if (depth_mask == 0x0) {
+		return;
+	}
 
 
 	__m128 screen_barry[2][4];
@@ -338,6 +389,210 @@ void pixel_shader(
 	store(colour_buffer[3], shader_input.colour_buffer + i_buffer + 12);
 }
 
+/*
+==================
+==================
+*/
+void Process_Fragment_4x4(
+
+	__int32 w_seed[2],
+	__int32 i_tile_in,
+	__int32 i_buffer_in,
+	const unsigned __int32 coverage_mask,
+	raster_output_& raster_output,
+	shader_input_& shader_input
+) {
+
+	const __int32 i_buffer = i_buffer_in + (i_tile_in * 4 * 4);
+
+	__m128i bazza[3][4];
+
+	for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+		__m128i w_row = set_all(w_seed[i_edge]);
+		bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
+		bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
+		bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
+		bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
+	}
+
+	pixel_shader(i_buffer, coverage_mask, bazza, shader_input);
+
+	const __int32 i_buffer_depth_4x4 = i_buffer / (4 * 4);
+	const __int32 i_buffer_depth_16x16 = i_buffer / (16 * 16);
+	shader_input.depth_tiles_4x4[i_buffer_depth_4x4] = shader_input.z_max;
+	shader_input.tile_mask_16x16 |= one_bit_64 << i_buffer_depth_16x16;
+}
+
+/*
+==================
+==================
+*/
+void Process_Fragment_16x16(
+
+	__int32 w_seed[2],
+	__int32 i_tile_in,
+	__int32 i_buffer_in,
+	const unsigned __int32 coverage_mask,
+	float depth_seed,
+	const float corner_seed[2][4],
+	const __m128 step_table_4[2][4],
+	raster_output_& raster_output,
+	shader_input_& shader_input
+) {
+
+	const __m128 zero = set_all(0.0f);
+
+	const __int32 i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
+
+	float max_table[4 * 4];
+	for (__int32 i = 0; i < 4; i++) {
+		store_u(zero, max_table + (i * 4));
+	}
+	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
+
+		__m128 seed = set_all(corner_seed[0][i_corner]) + set_all(depth_seed);
+
+		for (__int32 i = 0; i < 4; i++) {
+			__m128 max_temp = load_u(max_table + (i * 4));
+			max_temp = max_vec(step_table_4[0][i] + seed, max_temp);
+			store_u(max_temp, max_table + (i * 4));
+		}
+	}
+	const __int32 i_buffer_depth = i_buffer / (4 * 4);
+
+	unsigned __int32 result_mask = 0x0;
+	for (__int32 i = 0; i < 4; i++) {
+		__m128 max_tris = load_u(max_table + (i * 4));
+		__m128 max_buffer = load_u(shader_input.depth_tiles_4x4 + i_buffer_depth + (i * 4));
+		__m128i is_greater = max_tris >= max_buffer;
+		result_mask |= store_mask(is_greater) << (i * 4);
+	}
+
+	__int32 w_table[2][4 * 4];
+	for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+		__m128i temp[4];
+
+		__m128i w_row = set_all(w_seed[i_edge]);
+		temp[0] = w_row + load_u(raster_output.reject_table[1][i_edge][0]);
+		temp[1] = w_row + load_u(raster_output.reject_table[1][i_edge][1]);
+		temp[2] = w_row + load_u(raster_output.reject_table[1][i_edge][2]);
+		temp[3] = w_row + load_u(raster_output.reject_table[1][i_edge][3]);
+
+		store_u(temp[0], w_table[i_edge] + (0 << 2));
+		store_u(temp[1], w_table[i_edge] + (1 << 2));
+		store_u(temp[2], w_table[i_edge] + (2 << 2));
+		store_u(temp[3], w_table[i_edge] + (3 << 2));
+	}
+
+	__int32 n_tiles = _mm_popcnt_u32(result_mask);
+
+	for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
+
+		unsigned long i_tile;
+		_BitScanForward(&i_tile, result_mask);
+		result_mask ^= 0x1 << i_tile;
+
+		__int32 w_tile[2];
+		w_tile[0] = w_table[0][i_tile];
+		w_tile[1] = w_table[1][i_tile];
+
+		Process_Fragment_4x4(w_tile, i_tile, i_buffer, coverage_mask, raster_output, shader_input);
+
+	}
+}
+
+/*
+==================
+==================
+*/
+void Process_Fragment_64x64(
+
+	__int32 w_seed[2],
+	__int32 i_buffer_in,
+	const unsigned __int32 coverage_mask,
+	float depth_seed,
+	const float corner_seed[2][4],
+	const __m128 step_table_4[2][4],
+	raster_output_& raster_output,
+	shader_input_& shader_input
+) {
+
+	const __m128 zero = set_all(0.0f);
+
+	const __int32 i_buffer_depth = i_buffer_in / (16 * 16);
+
+	float max_table[4 * 4];
+	for (__int32 i = 0; i < 4; i++) {
+		store_u(zero, max_table + (i * 4));
+	}
+	float depth_table[4 * 4];
+	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
+
+		__m128 seed = set_all(corner_seed[1][i_corner]) + set_all(depth_seed);
+
+		for (__int32 i = 0; i < 4; i++) {
+			__m128 max_temp = load_u(max_table + (i * 4));
+			__m128 depth = step_table_4[1][i] + seed;
+			max_temp = max_vec(depth, max_temp);
+			store_u(max_temp, max_table + (i * 4));
+			store_u(depth, depth_table + (i * 4));
+		}
+	}
+
+	unsigned __int32 result_mask = 0x0;
+	for (__int32 i = 0; i < 4; i++) {
+		__m128 max_tris = load_u(max_table + (i * 4));
+		__m128 max_buffer = load_u(shader_input.depth_tiles_16x16 + i_buffer_depth + (i * 4));
+		__m128i is_greater = max_tris >= max_buffer;
+		result_mask |= store_mask(is_greater) << (i * 4);
+	}
+
+	__int32 w_table[2][4 * 4];
+	for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
+		__m128i temp[4];
+
+		__m128i w_row = set_all(w_seed[i_edge]);
+		temp[0] = w_row + load_u(raster_output.reject_table[2][i_edge][0]);
+		temp[1] = w_row + load_u(raster_output.reject_table[2][i_edge][1]);
+		temp[2] = w_row + load_u(raster_output.reject_table[2][i_edge][2]);
+		temp[3] = w_row + load_u(raster_output.reject_table[2][i_edge][3]);
+
+		store_u(temp[0], w_table[i_edge] + (0 << 2));
+		store_u(temp[1], w_table[i_edge] + (1 << 2));
+		store_u(temp[2], w_table[i_edge] + (2 << 2));
+		store_u(temp[3], w_table[i_edge] + (3 << 2));
+	}
+
+	__int32 n_tiles = _mm_popcnt_u32(result_mask);
+
+	//printf_s(" %i ", n_tiles);
+
+	for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
+
+		unsigned long i_tile;
+		_BitScanForward(&i_tile, result_mask);
+		result_mask ^= 0x1 << i_tile;
+
+		__int32 w_tile[2];
+		w_tile[0] = w_table[0][i_tile];
+		w_tile[1] = w_table[1][i_tile];
+
+		Process_Fragment_16x16(
+
+			w_tile,
+			i_tile,
+			i_buffer_in,
+			coverage_mask,
+			depth_table[i_tile],
+			corner_seed,
+			step_table_4,
+			raster_output,
+			shader_input
+		);
+	}
+}
+
+
 
 /*
 ==================
@@ -348,7 +603,45 @@ void Process_Fragments(
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
+
 	static const unsigned __int32 coverage_mask = 0xffff;
+	const __m128 zero = set_all(0.0f);
+
+	shader_input.is_test = false;
+	shader_input.tile_mask_16x16 = 0x0;
+
+	//===============================================================================================
+
+	__m128 step_table_4[2][4];
+	float corner_seed[2][4];
+	{
+		const float step[] = { 4.0f, 16.0f };
+		const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
+
+		for (__int32 i_level = 0; i_level < 2; i_level++) {
+
+			const float step_x = shader_input.depth_interpolants[X] * step[i_level];
+			const float step_y = shader_input.depth_interpolants[Y] * step[i_level];
+
+			__m128 x_table = series * set_all(step_x);
+			__m128 y_table_start = zero;
+			__m128 y_table_step = set_all(step_y);
+
+			step_table_4[i_level][0] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			step_table_4[i_level][1] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			step_table_4[i_level][2] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			step_table_4[i_level][3] = y_table_start + x_table;
+
+			corner_seed[i_level][3] = 0.0f;
+			corner_seed[i_level][2] = step_x;
+			corner_seed[i_level][1] = step_y;
+			corner_seed[i_level][0] = step_x + step_y;
+		}
+	}
+	//===============================================================================================
 
 	{
 		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64];
@@ -356,56 +649,29 @@ void Process_Fragments(
 
 			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][i_fragment];
 
-			__int32 w_table_16[2][4 * 4];
-			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-				__m128i temp[4];
+			const __int32 i_tile = raster_fragment.i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer_tile_64 = raster_fragment.i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
+			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
 
-				__m128i w_row = set_all(raster_fragment.w[i_edge]);
-				temp[0] = w_row + load_u(raster_output.reject_table[2][i_edge][0]);
-				temp[1] = w_row + load_u(raster_output.reject_table[2][i_edge][1]);
-				temp[2] = w_row + load_u(raster_output.reject_table[2][i_edge][2]);
-				temp[3] = w_row + load_u(raster_output.reject_table[2][i_edge][3]);
+			__int32 x_fragment;
+			__int32 y_fragment;
+			decode_morton(i_buffer_tile_64, x_fragment, y_fragment);
+			x_fragment += x_tile;
+			y_fragment += y_tile;
+			float z_seed = (x_fragment * shader_input.depth_interpolants[X]) + (y_fragment * shader_input.depth_interpolants[Y]) + shader_input.depth_interpolants[Z];
 
-				store_u(temp[0], w_table_16[i_edge] + (0 << 2));
-				store_u(temp[1], w_table_16[i_edge] + (1 << 2));
-				store_u(temp[2], w_table_16[i_edge] + (2 << 2));
-				store_u(temp[3], w_table_16[i_edge] + (3 << 2));
-			}
-			for (__int32 i_tile = 0; i_tile < (4 * 4); i_tile++) {
+			Process_Fragment_64x64(
 
-				__int32 w_table_4[2][4 * 4];
-				for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-					__m128i temp[4];
-
-					__m128i w_row = set_all(w_table_16[i_edge][i_tile]);
-					temp[0] = w_row + load_u(raster_output.reject_table[1][i_edge][0]);
-					temp[1] = w_row + load_u(raster_output.reject_table[1][i_edge][1]);
-					temp[2] = w_row + load_u(raster_output.reject_table[1][i_edge][2]);
-					temp[3] = w_row + load_u(raster_output.reject_table[1][i_edge][3]);
-
-					store_u(temp[0], w_table_4[i_edge] + (0 << 2));
-					store_u(temp[1], w_table_4[i_edge] + (1 << 2));
-					store_u(temp[2], w_table_4[i_edge] + (2 << 2));
-					store_u(temp[3], w_table_4[i_edge] + (3 << 2));
-				}
-
-				const __int32 i_buffer_16 = raster_fragment.i_buffer + (i_tile * 16 * 16);
-
-				for (__int32 i_tile = 0; i_tile < (4 * 4); i_tile++) {
-
-					__m128i bazza[3][4];
-
-					for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-						__m128i w_row = set_all(w_table_4[i_edge][i_tile]);
-						bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
-						bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
-						bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
-						bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
-					}
-					const __int32 i_buffer = i_buffer_16 + (i_tile * 4 * 4);
-					pixel_shader(i_buffer, coverage_mask, bazza, shader_input);
-				}
-			}
+				raster_fragment.w,
+				raster_fragment.i_buffer,
+				coverage_mask,
+				z_seed,
+				corner_seed,
+				step_table_4,
+				raster_output,
+				shader_input
+			);
 		}
 	}
 	//===============================================================================================
@@ -415,53 +681,39 @@ void Process_Fragments(
 
 			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][i_fragment];
 
-			__int32 w_table[2][4 * 4];
-			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-				__m128i temp[4];
+			const __int32 i_tile = raster_fragment.i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer_tile_16 = raster_fragment.i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
+			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
+			__int32 x_fragment;
+			__int32 y_fragment;
+			decode_morton(i_buffer_tile_16, x_fragment, y_fragment);
+			x_fragment += x_tile;
+			y_fragment += y_tile;
+			float z_seed = (x_fragment * shader_input.depth_interpolants[X]) + (y_fragment * shader_input.depth_interpolants[Y]) + shader_input.depth_interpolants[Z];
 
-				__m128i w_row = set_all(raster_fragment.w[i_edge]);
-				temp[0] = w_row + load_u(raster_output.reject_table[1][i_edge][0]);
-				temp[1] = w_row + load_u(raster_output.reject_table[1][i_edge][1]);
-				temp[2] = w_row + load_u(raster_output.reject_table[1][i_edge][2]);
-				temp[3] = w_row + load_u(raster_output.reject_table[1][i_edge][3]);
+			Process_Fragment_16x16(
 
-				store_u(temp[0], w_table[i_edge] + (0 << 2));
-				store_u(temp[1], w_table[i_edge] + (1 << 2));
-				store_u(temp[2], w_table[i_edge] + (2 << 2));
-				store_u(temp[3], w_table[i_edge] + (3 << 2));
-			}
-			for (__int32 i_tile = 0; i_tile < (4 *4); i_tile++) {
-
-				__m128i bazza[3][4];
-
-				for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-					__m128i w_row = set_all(w_table[i_edge][i_tile]);
-					bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
-					bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
-					bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
-					bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
-				}
-				const __int32 i_buffer = raster_fragment.i_buffer + (i_tile * 4 * 4);
-				pixel_shader(i_buffer, coverage_mask, bazza, shader_input);
-			}
+				raster_fragment.w,
+				0,
+				raster_fragment.i_buffer,
+				coverage_mask,
+				z_seed,
+				corner_seed,
+				step_table_4,
+				raster_output,
+				shader_input
+			);
 		}
 	}
 	//===============================================================================================
 	{
+
 		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4];
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
 			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][i_fragment];
-			__m128i bazza[3][4];
-
-			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-				__m128i w_row = set_all(raster_fragment.w[i_edge]);
-				bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
-				bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
-				bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
-				bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
-			}
-			pixel_shader(raster_fragment.i_buffer, coverage_mask, bazza, shader_input);
+			Process_Fragment_4x4(raster_fragment.w, 0, raster_fragment.i_buffer, coverage_mask, raster_output, shader_input);
 		}
 	}
 	//===============================================================================================
@@ -470,18 +722,9 @@ void Process_Fragments(
 		const __int32 end = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
 		for (__int32 i_fragment = start; i_fragment > end; i_fragment--) {
 
+
 			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][i_fragment];
-			__m128i bazza[3][4];
-
-			for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
-				__m128i w_row = set_all(raster_fragment.w[i_edge]);
-				bazza[i_edge][0] = w_row + load_u(raster_output.reject_table[0][i_edge][0]);
-				bazza[i_edge][1] = w_row + load_u(raster_output.reject_table[0][i_edge][1]);
-				bazza[i_edge][2] = w_row + load_u(raster_output.reject_table[0][i_edge][2]);
-				bazza[i_edge][3] = w_row + load_u(raster_output.reject_table[0][i_edge][3]);
-			}
-
-			pixel_shader(raster_fragment.i_buffer, raster_fragment.coverage_mask, bazza, shader_input);
+			Process_Fragment_4x4(raster_fragment.w, 0, raster_fragment.i_buffer, raster_fragment.coverage_mask, raster_output, shader_input);
 		}
 	}
 	//===============================================================================================
@@ -491,7 +734,50 @@ void Process_Fragments(
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
 			raster_fragment_complete_& raster_fragment = raster_output.raster_fragment_complete[i_fragment];
+
 			pixel_shader(raster_fragment.i_buffer, raster_fragment.coverage_mask, raster_fragment.bazza, shader_input);
+
+			const __int32 i_buffer_depth_4x4 = raster_fragment.i_buffer / (4 * 4);
+			const __int32 i_buffer_depth_16x16 = raster_fragment.i_buffer / (16 * 16);
+			shader_input.depth_tiles_4x4[i_buffer_depth_4x4] = shader_input.z_max;
+			shader_input.tile_mask_16x16 |= one_bit_64 << i_buffer_depth_16x16;
+		}
+	}
+	//===============================================================================================
+	{
+		//printf_s(" %llu ", shader_input.tile_mask_16x16);
+
+		__int64 n_tiles = _mm_popcnt_u64(shader_input.tile_mask_16x16);
+
+		for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
+
+			unsigned long i_tile_16x16;
+			_BitScanForward64(&i_tile_16x16, shader_input.tile_mask_16x16);
+			shader_input.tile_mask_16x16 ^= one_bit_64 << i_tile_16x16;
+
+			const __int32 i_tile_4x4 = i_tile_16x16 * (4 * 4);
+
+			__m128 depth_4x4[4];
+			depth_4x4[0] = load_u(shader_input.depth_tiles_4x4 + i_tile_4x4 + (0 * 4));
+			depth_4x4[1] = load_u(shader_input.depth_tiles_4x4 + i_tile_4x4 + (1 * 4));
+			depth_4x4[2] = load_u(shader_input.depth_tiles_4x4 + i_tile_4x4 + (2 * 4));
+			depth_4x4[3] = load_u(shader_input.depth_tiles_4x4 + i_tile_4x4 + (3 * 4));
+
+			__m128 z_max;
+			z_max = depth_4x4[0];
+			z_max = min_vec(depth_4x4[1], z_max);
+			z_max = min_vec(depth_4x4[2], z_max);
+			z_max = min_vec(depth_4x4[3], z_max);
+
+			__m128 z_out = z_max;
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+
+			shader_input.depth_tiles_16x16[i_tile_16x16] = store_s(z_out);
 		}
 	}
 }
