@@ -434,8 +434,6 @@ void Process_Fragment_16x16(
 	__int32 i_buffer_in,
 	const unsigned __int32 coverage_mask,
 	float depth_seed,
-	const float corner_seed[2][4],
-	const __m128 step_table_4[2][4],
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
@@ -450,11 +448,11 @@ void Process_Fragment_16x16(
 	}
 	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
 
-		__m128 seed = set_all(corner_seed[0][i_corner]) + set_all(depth_seed);
+		__m128 seed = set_all(shader_input.corner_seed[0][i_corner]) + set_all(depth_seed);
 
 		for (__int32 i = 0; i < 4; i++) {
 			__m128 max_temp = load_u(max_table + (i * 4));
-			max_temp = max_vec(step_table_4[0][i] + seed, max_temp);
+			max_temp = max_vec(shader_input.step_table[0][i] + seed, max_temp);
 			store_u(max_temp, max_table + (i * 4));
 		}
 	}
@@ -511,8 +509,6 @@ void Process_Fragment_64x64(
 	__int32 i_buffer_in,
 	const unsigned __int32 coverage_mask,
 	float depth_seed,
-	const float corner_seed[2][4],
-	const __m128 step_table_4[2][4],
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
@@ -528,11 +524,11 @@ void Process_Fragment_64x64(
 	float depth_table[4 * 4];
 	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
 
-		__m128 seed = set_all(corner_seed[1][i_corner]) + set_all(depth_seed);
+		__m128 seed = set_all(shader_input.corner_seed[1][i_corner]) + set_all(depth_seed);
 
 		for (__int32 i = 0; i < 4; i++) {
 			__m128 max_temp = load_u(max_table + (i * 4));
-			__m128 depth = step_table_4[1][i] + seed;
+			__m128 depth = shader_input.step_table[1][i] + seed;
 			max_temp = max_vec(depth, max_temp);
 			store_u(max_temp, max_table + (i * 4));
 			store_u(depth, depth_table + (i * 4));
@@ -584,8 +580,6 @@ void Process_Fragment_64x64(
 			i_buffer_in,
 			coverage_mask,
 			depth_table[i_tile],
-			corner_seed,
-			step_table_4,
 			raster_output,
 			shader_input
 		);
@@ -604,16 +598,13 @@ void Process_Fragments(
 	shader_input_& shader_input
 ) {
 
-	static const unsigned __int32 coverage_mask = 0xffff;
 	const __m128 zero = set_all(0.0f);
 
-	shader_input.is_test = false;
 	shader_input.tile_mask_16x16 = 0x0;
 
 	//===============================================================================================
 
-	__m128 step_table_4[2][4];
-	float corner_seed[2][4];
+
 	{
 		const float step[] = { 4.0f, 16.0f };
 		const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
@@ -627,30 +618,32 @@ void Process_Fragments(
 			__m128 y_table_start = zero;
 			__m128 y_table_step = set_all(step_y);
 
-			step_table_4[i_level][0] = y_table_start + x_table;
+			shader_input.step_table[i_level][0] = y_table_start + x_table;
 			y_table_start += y_table_step;
-			step_table_4[i_level][1] = y_table_start + x_table;
+			shader_input.step_table[i_level][1] = y_table_start + x_table;
 			y_table_start += y_table_step;
-			step_table_4[i_level][2] = y_table_start + x_table;
+			shader_input.step_table[i_level][2] = y_table_start + x_table;
 			y_table_start += y_table_step;
-			step_table_4[i_level][3] = y_table_start + x_table;
+			shader_input.step_table[i_level][3] = y_table_start + x_table;
 
-			corner_seed[i_level][3] = 0.0f;
-			corner_seed[i_level][2] = step_x;
-			corner_seed[i_level][1] = step_y;
-			corner_seed[i_level][0] = step_x + step_y;
+			shader_input.corner_seed[i_level][3] = 0.0f;
+			shader_input.corner_seed[i_level][2] = step_x;
+			shader_input.corner_seed[i_level][1] = step_y;
+			shader_input.corner_seed[i_level][0] = step_x + step_y;
 		}
 	}
 	//===============================================================================================
 
 	{
-		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64];
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64x64];
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
-			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][i_fragment];
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64x64][i_fragment];
 
-			const __int32 i_tile = raster_fragment.i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 i_buffer_tile_64 = raster_fragment.i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
+			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
+			const __int32 i_tile = i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer_tile_64 = i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
 			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
 			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
 
@@ -664,11 +657,9 @@ void Process_Fragments(
 			Process_Fragment_64x64(
 
 				raster_fragment.w,
-				raster_fragment.i_buffer,
+				i_buffer,
 				coverage_mask,
 				z_seed,
-				corner_seed,
-				step_table_4,
 				raster_output,
 				shader_input
 			);
@@ -676,13 +667,15 @@ void Process_Fragments(
 	}
 	//===============================================================================================
 	{
-		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16];
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16x16];
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
-			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][i_fragment];
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16x16][i_fragment];
 
-			const __int32 i_tile = raster_fragment.i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 i_buffer_tile_16 = raster_fragment.i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
+			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
+			const __int32 i_tile = i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
+			const __int32 i_buffer_tile_16 = i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
 			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
 			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
 			__int32 x_fragment;
@@ -696,11 +689,9 @@ void Process_Fragments(
 
 				raster_fragment.w,
 				0,
-				raster_fragment.i_buffer,
+				i_buffer,
 				coverage_mask,
 				z_seed,
-				corner_seed,
-				step_table_4,
 				raster_output,
 				shader_input
 			);
@@ -709,23 +700,27 @@ void Process_Fragments(
 	//===============================================================================================
 	{
 
-		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4];
+		const __int32 n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4x4];
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
-			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][i_fragment];
-			Process_Fragment_4x4(raster_fragment.w, 0, raster_fragment.i_buffer, coverage_mask, raster_output, shader_input);
+			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4x4][i_fragment];
+			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
+			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
+			Process_Fragment_4x4(raster_fragment.w, 0, i_buffer, coverage_mask, raster_output, shader_input);
 		}
 	}
 	//===============================================================================================
 	{
-		const __int32 start = raster_output_::MAX_FRAGMENTS - 1;
-		const __int32 end = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
-		for (__int32 i_fragment = start; i_fragment > end; i_fragment--) {
+		//const __int32 start = raster_output_::MAX_FRAGMENTS - 1;
+		//const __int32 end = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT_4x4];
+		//for (__int32 i_fragment = start; i_fragment > end; i_fragment--) {
 
 
-			raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][i_fragment];
-			Process_Fragment_4x4(raster_fragment.w, 0, raster_fragment.i_buffer, raster_fragment.coverage_mask, raster_output, shader_input);
-		}
+		//	raster_fragment_& raster_fragment = raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT_4x4][i_fragment];
+		//	const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
+		//	const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
+		//	Process_Fragment_4x4(raster_fragment.w, 0, i_buffer, coverage_mask, raster_output, shader_input);
+		//}
 	}
 	//===============================================================================================
 	{
@@ -734,11 +729,13 @@ void Process_Fragments(
 		for (__int32 i_fragment = 0; i_fragment < n_fragments; i_fragment++) {
 
 			raster_fragment_complete_& raster_fragment = raster_output.raster_fragment_complete[i_fragment];
+			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
+			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
 
-			pixel_shader(raster_fragment.i_buffer, raster_fragment.coverage_mask, raster_fragment.bazza, shader_input);
+			pixel_shader(i_buffer, coverage_mask, raster_fragment.bazza, shader_input);
 
-			const __int32 i_buffer_depth_4x4 = raster_fragment.i_buffer / (4 * 4);
-			const __int32 i_buffer_depth_16x16 = raster_fragment.i_buffer / (16 * 16);
+			const __int32 i_buffer_depth_4x4 = i_buffer / (4 * 4);
+			const __int32 i_buffer_depth_16x16 = i_buffer / (16 * 16);
 			shader_input.depth_tiles_4x4[i_buffer_depth_4x4] = shader_input.z_max;
 			shader_input.tile_mask_16x16 |= one_bit_64 << i_buffer_depth_16x16;
 		}

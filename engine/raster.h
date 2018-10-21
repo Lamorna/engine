@@ -27,29 +27,25 @@ struct raster_data_ {
 struct raster_fragment_ {
 
 	__int32 w[2];
-	__int32 i_buffer;
-	unsigned __int32 coverage_mask;
+	unsigned __int32 buffer_mask_packed;
 };
 
 struct raster_fragment_complete_ {
 
 	__m128i bazza[3][4];
-	__int32 i_buffer;
-	unsigned __int32 coverage_mask;
+	unsigned __int32 buffer_mask_packed;
 };
 
 struct raster_output_ {
 
 	enum {
 
-		PARTIAL_ACCEPT,
-		TRIVIAL_ACCEPT_4,
-		TRIVIAL_ACCEPT_16,
-		TRIVIAL_ACCEPT_64,
+		PARTIAL_ACCEPT_4x4,
+		TRIVIAL_ACCEPT_4x4 = PARTIAL_ACCEPT_4x4,
+		TRIVIAL_ACCEPT_16x16,
+		TRIVIAL_ACCEPT_64x64,
 
 		NUM_ACCEPT_TYPES,
-
-		BIN_SIZE_TEMP = 128,
 
 		//MAX_FRAGMENTS = (BIN_SIZE_TEMP * BIN_SIZE_TEMP) / (4 * 4)
 		MAX_FRAGMENTS = 512,

@@ -99,8 +99,8 @@ struct draw_call_ {
 
 		enum {
 
-			PLAYER, SHAMBLER, SCRAG, BOUNCE_PAD, TELEPORTER, PLATFORMS, DOOR, ITEMS, MAP,
-			CLOUDS = MAP + grid_::NUM_NODES + 1, LAVA, SKYBOX, PARTICLES, PROJECTILES, PATROL_POINTS, TRAP_DOOR, BUTTON, PLATE, COUNT,
+			MAP, SHAMBLER = MAP + grid_::NUM_NODES + 1, PLAYER, SCRAG, BOUNCE_PAD, TELEPORTER, PLATFORMS, DOOR, ITEMS,
+			CLOUDS, LAVA, SKYBOX, PARTICLES, PROJECTILES, PATROL_POINTS, TRAP_DOOR, BUTTON, PLATE, COUNT,
 		};
 	};
 
@@ -287,8 +287,10 @@ struct shader_input_ {
 	float depth_interpolants[3];
 	__int32 x;
 	__int32 y;
-	bool is_test;
 	unsigned __int64 tile_mask_16x16;
+
+	__m128 step_table[2][4];
+	float corner_seed[2][4];
 
 };
 

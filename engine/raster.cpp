@@ -11,6 +11,9 @@ enum {
 
 };
 
+static const unsigned __int32 full_mask = 0xffff;
+
+
 /*
 ==================
 ==================
@@ -181,39 +184,11 @@ void Rasteriser_4x4(
 				i_temp++;
 			}
 
-			raster_output.raster_fragment_complete[n_fragments].coverage_mask = draw_mask;
-			raster_output.raster_fragment_complete[n_fragments].i_buffer = i_tile + i_block;
-			//n_fragments++;
+			raster_output.raster_fragment_complete[n_fragments].buffer_mask_packed = (i_tile + i_block) << 16 | draw_mask;
 			n_fragments += draw_mask != 0x0;
 		}
 	}
 }
-
-
-
-/*
-==================
-==================
-*/
-//void emit_4x4(
-//
-//	const __int32 i_buffer_in,
-//	const __int32 i_tile_in,
-//	__int32 w_in[3][16],
-//	__int32 reject_table[3][3][4][4],
-//	raster_output_& raster_output
-//
-//) {
-//
-//	const __int32 i_buffer = i_buffer_in + (i_tile_in * 4 * 4);
-//	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT];
-//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].coverage_mask = 0x0;
-//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].i_buffer = i_buffer;
-//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].w[0] = w_in[0][i_tile_in];
-//	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT][n_fragments].w[1] = w_in[1][i_tile_in];
-//	n_fragments++;
-//}
-
 
 /*
 ==================
@@ -229,11 +204,11 @@ void emit_16x16(
 
 ) {
 
-
-	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16];
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].w[0] = w_in[0][i_tile_in];
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16][n_fragments].w[1] = w_in[1][i_tile_in];
+	const __int32 i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
+	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16x16];
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16x16][n_fragments].buffer_mask_packed = (i_buffer << 16) | full_mask;
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16x16][n_fragments].w[0] = w_in[0][i_tile_in];
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16x16][n_fragments].w[1] = w_in[1][i_tile_in];
 	n_fragments++;
 
 }
@@ -251,58 +226,13 @@ void emit_64x64(
 
 ) {
 
-	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64];
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].i_buffer = i_buffer_in;
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].w[0] = w_in[0];
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64][n_fragments].w[1] = w_in[1];
+	__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64x64];
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64x64][n_fragments].buffer_mask_packed = (i_buffer_in << 16) | full_mask;
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64x64][n_fragments].w[0] = w_in[0];
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64x64][n_fragments].w[1] = w_in[1];
 	n_fragments++;
 
 }
-
-/*
-==================
-==================
-*/
-//void process_4x4(
-//
-//	const __int32 i_buffer_in,
-//	const __int32 i_tile_in,
-//	__int32 w_in[3][16],
-//	__int32 reject_table[3][3][4][4],
-//	raster_output_& raster_output
-//
-//) {
-//
-//	__m128i bazza[3][4];
-//
-//	unsigned __int32 draw_mask = -1;
-//
-//	for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
-//
-//		unsigned __int32 temp_mask = 0x0;
-//		__m128i w_row = set_all(w_in[i_edge][i_tile_in]);
-//		bazza[i_edge][0] = w_row + load_u(reject_table[0][i_edge][0]);
-//		bazza[i_edge][1] = w_row + load_u(reject_table[0][i_edge][1]);
-//		bazza[i_edge][2] = w_row + load_u(reject_table[0][i_edge][2]);
-//		bazza[i_edge][3] = w_row + load_u(reject_table[0][i_edge][3]);
-//
-//		temp_mask |= store_mask(bazza[i_edge][0]) << (0 << 2);
-//		temp_mask |= store_mask(bazza[i_edge][1]) << (1 << 2);
-//		temp_mask |= store_mask(bazza[i_edge][2]) << (2 << 2);
-//		temp_mask |= store_mask(bazza[i_edge][3]) << (3 << 2);
-//
-//		draw_mask &= temp_mask;
-//	}
-//	const __int32 i_buffer = i_buffer_in + (i_tile_in * 4 * 4);
-//
-//	__int32& n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
-//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].coverage_mask = draw_mask;
-//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].i_buffer = i_buffer;
-//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[0] = w_in[0][i_tile_in];
-//	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[1] = w_in[1][i_tile_in];
-//	//n_fragments++;
-//	n_fragments += draw_mask != 0x0;
-//}
 
 /*
 ==================
@@ -344,7 +274,7 @@ void process_16x16(
 		}
 		partial_accept_mask = reject_mask ^ accept_mask;
 	}
-	const __int32 i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
+	const __int32 i_buffer_16 = i_buffer_in + (i_tile_in * 16 * 16);
 	{
 		__int32 n_tiles = _mm_popcnt_u32(accept_mask);
 		for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
@@ -353,11 +283,11 @@ void process_16x16(
 			_BitScanForward(&i_tile, accept_mask);
 			accept_mask ^= 0x1 << i_tile;
 
-			__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4];
-			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].coverage_mask = 0x0;
-			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].i_buffer = i_buffer + (i_tile * 4 * 4);
-			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].w[0] = w_table[0][i_tile];
-			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4][n_fragments].w[1] = w_table[1][i_tile];
+			const __int32 i_buffer_4 = i_buffer_16 + (i_tile * 4 * 4);
+			__int32& n_fragments = raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4x4];
+			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4x4][n_fragments].buffer_mask_packed = (i_buffer_4 << 16) | full_mask;
+			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4x4][n_fragments].w[0] = w_table[0][i_tile];
+			raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4x4][n_fragments].w[1] = w_table[1][i_tile];
 			n_fragments++;
 		}
 	}
@@ -390,12 +320,13 @@ void process_16x16(
 				draw_mask &= temp_mask;
 			}
 
-			__int32& n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT];
-			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].coverage_mask = draw_mask;
-			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].i_buffer = i_buffer + (i_tile * 4 * 4);
-			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[0] = w_table[0][i_tile];
-			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT][n_fragments].w[1] = w_table[1][i_tile];
-			n_fragments -= draw_mask != 0x0;
+			const __int32 i_buffer_4 = i_buffer_16 + (i_tile * 4 * 4);
+			__int32& n_fragments = raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT_4x4];
+			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT_4x4][n_fragments].buffer_mask_packed = (i_buffer_4 << 16) | draw_mask;
+			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT_4x4][n_fragments].w[0] = w_table[0][i_tile];
+			raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT_4x4][n_fragments].w[1] = w_table[1][i_tile];
+			//n_fragments -= draw_mask != 0x0;
+			n_fragments += draw_mask != 0x0;
 		}
 	}
 }
@@ -620,17 +551,17 @@ void Rasteriser(
 
 ) {
 
-	raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT] = raster_output_::MAX_FRAGMENTS - 1;
-	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4] = 0;
-	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16] = 0;
-	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64] = 0;
+	//raster_output.n_fragments[raster_output_::PARTIAL_ACCEPT_4x4] = raster_output_::MAX_FRAGMENTS - 1;
+	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_4x4] = 0;
+	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_16x16] = 0;
+	raster_output.n_fragments[raster_output_::TRIVIAL_ACCEPT_64x64] = 0;
 	raster_output.n_fragments_COMPLETE = 0;
 
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64] = raster_output.base_fragments;
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16] = raster_output.base_fragments + 4;
-	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4] = raster_output.base_fragments + 4 + 64;
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_64x64] = raster_output.base_fragments;
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_16x16] = raster_output.base_fragments + 4;
+	raster_output.raster_fragment[raster_output_::TRIVIAL_ACCEPT_4x4] = raster_output.base_fragments + 4 + 64;
 	//raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT] = raster_output.base_fragments + 4 + 64 + 256;
-	raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT] = raster_output.base_fragments;
+	//raster_output.raster_fragment[raster_output_::PARTIAL_ACCEPT_4x4] = raster_output.base_fragments;
 
 	bool is_small_tris = 
 		((raster_data.bb_max.x - raster_data.bb_min.x) < 4) 
