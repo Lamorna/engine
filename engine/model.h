@@ -133,6 +133,8 @@ struct model_ {
 			SKY_BOX,
 			TELEPORTER,
 			DOOR,
+			LAVA,
+			CLOUD,
 			MAP,
 
 			COUNT_NAMED = MAP + grid_::NUM_NODES + 1,

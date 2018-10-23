@@ -401,7 +401,7 @@ void Specialise_Cube_Template(
 
 ) {
 
-	const __int32 n_models = 10;
+	const __int32 n_models = 12;
 	const __int32 write_model_ids[n_models] = {
 
 		model_::id_::PLATFORM,
@@ -414,6 +414,8 @@ void Specialise_Cube_Template(
 		model_::id_::SKY_BOX,
 		model_::id_::TELEPORTER,
 		model_::id_::DOOR,
+		model_::id_::LAVA,
+		model_::id_::CLOUD,
 	};
 
 	const __int32 read_model_ids[n_models] = {
@@ -426,6 +428,8 @@ void Specialise_Cube_Template(
 		model_::id_::CUBE,
 		model_::id_::CUBE,
 		model_::id_::CUBE_BACKFACE,
+		model_::id_::CUBE,
+		model_::id_::CUBE,
 		model_::id_::CUBE,
 		model_::id_::CUBE,
 	};
@@ -463,6 +467,12 @@ void Specialise_Cube_Template(
 
 	n_textures[9] = 1;
 	file_names[9][0] = "textures/door.png";
+
+	n_textures[10] = 1;
+	file_names[10][0] = "textures/lava.bmp";
+
+	n_textures[11] = 1;
+	file_names[11][0] = "textures/cloud.bmp";
 
 
 	for (__int32 i_model = 0; i_model < n_models; i_model++) {

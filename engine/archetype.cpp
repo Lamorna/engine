@@ -595,16 +595,14 @@ void COMPONENT_Populate_Table(
 		};
 
 		const __int32 n_components = sizeof(component_list) / sizeof(component_list[0]);
-		const model_& model = model_animate[model_::id_::CUBE];
 		float3_ model_colour = { 100.0f, 50.0f, 20.0f };
-		float3_ system_position = { 0.0f, 3000.0f, 0.0f };
-		float3_ scale = { 120.0f, 80.0f, 120.0f };
+		float3_ system_position = { 0.0f, 2500.0f, 0.0f };
+		float3_ scale = { 240.0f, 80.0f, 240.0f };
 		const __int32 draw_id = draw_call_::id_::CLOUDS;
-		const float cloud_height = 100.0f;
-		float cloud_layers[] = { cloud_height + 10.0f, cloud_height - 10.0f };
-		const float cloud_buffer = 120.0f;
+		float cloud_layers[] = { 10.0f, -10.0f };
+		const float cloud_buffer = 240.0f;
 		float3_ map_back = { 4.0f * (scale.x + cloud_buffer), 0.0f, 4.0f * (scale.z + cloud_buffer) };
-		const __int32 n_clouds_length = 14;
+		const __int32 n_clouds_length = 8;
 		const float angle_radians = (360.0f / (n_clouds_length * n_clouds_length)) * RADIANS_PER_DEGREE;
 		//float current_angle = 0.0f;
 		float current_angle_NEW = 0.0f;
@@ -684,7 +682,7 @@ void COMPONENT_Populate_Table(
 				small_model_id[n_models].id = n_models;
 
 				draw[n_models].draw_id = draw_id;
-				draw[n_models].model_id = model_::id_::CUBE;
+				draw[n_models].model_id = model_::id_::CLOUD;
 
 				n_models++;
 			}
@@ -727,8 +725,6 @@ void COMPONENT_Populate_Table(
 
 		const __int32 n_components = sizeof(component_list) / sizeof(component_list[0]);
 
-		const struct model_& model = model_animate[model_::id_::CUBE];
-
 		const float3_ colours[] = {
 
 			{ 100.0f, 100.0f, 10.0f },
@@ -736,7 +732,7 @@ void COMPONENT_Populate_Table(
 		{ 100.0f, 100.0f, 10.0f },
 		};
 
-		const float	lava_height = -300.0f;
+		const float	lava_height = 400.0f;
 		float3_ system_position = { 0.0f, lava_height, 0.0f };
 		const __int32 draw_id = draw_call_::id_::LAVA;
 
@@ -747,13 +743,13 @@ void COMPONENT_Populate_Table(
 		//};
 
 		const float angle_increment = 50.0f;
-		const float spacing = 200.0f;
+		const float spacing = 900.0f;
 		//float angle = 0.0f;
 		float angle_NEW = 0.0f;
 
 		__int32 n_models = 0;
 
-		const __int32 n_elements_wide = 14;
+		const __int32 n_elements_wide = 8;
 		const __int32 n_models_total = n_elements_wide * n_elements_wide;
 
 		// -----------------------------------------------------------------------------------
@@ -809,7 +805,7 @@ void COMPONENT_Populate_Table(
 				for (__int32 i_axis = X; i_axis < W; i_axis++) {
 					base[n_models].position_fixed.i[i_axis] = __int32(position.f[i_axis] * fixed_scale_real);
 				}
-				base[n_models].scale = { 80.0f, 160.0f, 80.0f };
+				base[n_models].scale = { 400.0f, 400.0f, 400.0f };
 
 				colour[n_models].colour = colours[n_models % 3];;
 
@@ -826,7 +822,7 @@ void COMPONENT_Populate_Table(
 				small_model_id[n_models].id = n_models;
 
 				draw[n_models].draw_id = draw_id;
-				draw[n_models].model_id = model_::id_::CUBE;
+				draw[n_models].model_id = model_::id_::LAVA;
 
 				n_models++;
 			}

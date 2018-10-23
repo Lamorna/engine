@@ -19,12 +19,12 @@ void Clear_Tile_Buffer(
 
 ) {
 	const __m128 zero_depth = set_all(0.0f);
-	const __m128i zero_colour = set_all_bits();
+	//const __m128i zero_colour = set_all_bits();
 
 	for (__int32 i = 0; i < display_::BIN_SIZE * display_::BIN_SIZE; i += 4) {
 
 		store(zero_depth, display.depth_buffer_bin[i_thread] + i);
-		store(zero_colour, display.colour_buffer_bin[i_thread] + i);
+		//store(zero_colour, display.colour_buffer_bin[i_thread] + i);
 	}
 	{
 		const __int32 size = (display_::BIN_SIZE * display_::BIN_SIZE) / (4 * 4);
@@ -270,11 +270,16 @@ void Process_Bin_Triangles(
 			unsigned __int32 index = 0;
 			temp[index] = draw_entries[i_iterate];
 			temp[index ^ 1] = draw_entries[i_iterate - 1];
-			index ^= draw_entries[i_iterate].draw_id > draw_entries[i_iterate - 1].draw_id;
+			index ^= draw_entries[i_iterate].draw_id < draw_entries[i_iterate - 1].draw_id;
 			draw_entries[i_iterate] = temp[index];
 			draw_entries[i_iterate - 1] = temp[index ^ 1];
 		}
 	}
+
+	//for (__int32 i_draw_entry = 1; i_draw_entry < n_draw_calls; i_draw_entry++) {
+	//	printf_s(" %i ", draw_entries[i_draw_entry].draw_id);
+	//}
+	//printf_s(" \n ");
 
 	for (__int32 i_draw_entry = 0; i_draw_entry < n_draw_calls; i_draw_entry++) {
 
