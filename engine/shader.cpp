@@ -419,8 +419,10 @@ void Process_Fragment_4x4(
 
 	const __int32 i_buffer_depth_4x4 = i_buffer / (4 * 4);
 	const __int32 i_buffer_depth_16x16 = i_buffer / (16 * 16);
+	const __int32 i_buffer_depth_64x64 = i_buffer / (64 * 64);
 	shader_input.depth_tiles_4x4[i_buffer_depth_4x4] = shader_input.z_max;
 	shader_input.tile_mask_16x16 |= one_bit_64 << i_buffer_depth_16x16;
+	shader_input.tile_mask_64x64 |= one_bit_64 << i_buffer_depth_64x64;
 }
 
 /*
@@ -433,38 +435,11 @@ void Process_Fragment_16x16(
 	__int32 i_tile_in,
 	__int32 i_buffer_in,
 	const unsigned __int32 coverage_mask,
-	float depth_seed,
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
 
-	const __m128 zero = set_all(0.0f);
-
 	const __int32 i_buffer = i_buffer_in + (i_tile_in * 16 * 16);
-
-	float max_table[4 * 4];
-	for (__int32 i = 0; i < 4; i++) {
-		store_u(zero, max_table + (i * 4));
-	}
-	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
-
-		__m128 seed = set_all(shader_input.corner_seed[0][i_corner]) + set_all(depth_seed);
-
-		for (__int32 i = 0; i < 4; i++) {
-			__m128 max_temp = load_u(max_table + (i * 4));
-			max_temp = max_vec(shader_input.step_table[0][i] + seed, max_temp);
-			store_u(max_temp, max_table + (i * 4));
-		}
-	}
-	const __int32 i_buffer_depth = i_buffer / (4 * 4);
-
-	unsigned __int32 result_mask = 0x0;
-	for (__int32 i = 0; i < 4; i++) {
-		__m128 max_tris = load_u(max_table + (i * 4));
-		__m128 max_buffer = load_u(shader_input.depth_tiles_4x4 + i_buffer_depth + (i * 4));
-		__m128i is_greater = max_tris >= max_buffer;
-		result_mask |= store_mask(is_greater) << (i * 4);
-	}
 
 	__int32 w_table[2][4 * 4];
 	for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
@@ -482,20 +457,13 @@ void Process_Fragment_16x16(
 		store_u(temp[3], w_table[i_edge] + (3 << 2));
 	}
 
-	__int32 n_tiles = _mm_popcnt_u32(result_mask);
-
-	for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
-
-		unsigned long i_tile;
-		_BitScanForward(&i_tile, result_mask);
-		result_mask ^= 0x1 << i_tile;
+	for (__int32 i_tile = 0; i_tile < 16; i_tile++) {
 
 		__int32 w_tile[2];
 		w_tile[0] = w_table[0][i_tile];
 		w_tile[1] = w_table[1][i_tile];
 
 		Process_Fragment_4x4(w_tile, i_tile, i_buffer, coverage_mask, raster_output, shader_input);
-
 	}
 }
 
@@ -508,40 +476,9 @@ void Process_Fragment_64x64(
 	__int32 w_seed[2],
 	__int32 i_buffer_in,
 	const unsigned __int32 coverage_mask,
-	float depth_seed,
 	raster_output_& raster_output,
 	shader_input_& shader_input
 ) {
-
-	const __m128 zero = set_all(0.0f);
-
-	const __int32 i_buffer_depth = i_buffer_in / (16 * 16);
-
-	float max_table[4 * 4];
-	for (__int32 i = 0; i < 4; i++) {
-		store_u(zero, max_table + (i * 4));
-	}
-	float depth_table[4 * 4];
-	for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
-
-		__m128 seed = set_all(shader_input.corner_seed[1][i_corner]) + set_all(depth_seed);
-
-		for (__int32 i = 0; i < 4; i++) {
-			__m128 max_temp = load_u(max_table + (i * 4));
-			__m128 depth = shader_input.step_table[1][i] + seed;
-			max_temp = max_vec(depth, max_temp);
-			store_u(max_temp, max_table + (i * 4));
-			store_u(depth, depth_table + (i * 4));
-		}
-	}
-
-	unsigned __int32 result_mask = 0x0;
-	for (__int32 i = 0; i < 4; i++) {
-		__m128 max_tris = load_u(max_table + (i * 4));
-		__m128 max_buffer = load_u(shader_input.depth_tiles_16x16 + i_buffer_depth + (i * 4));
-		__m128i is_greater = max_tris >= max_buffer;
-		result_mask |= store_mask(is_greater) << (i * 4);
-	}
 
 	__int32 w_table[2][4 * 4];
 	for (__int32 i_edge = 0; i_edge < 2; i_edge++) {
@@ -559,15 +496,7 @@ void Process_Fragment_64x64(
 		store_u(temp[3], w_table[i_edge] + (3 << 2));
 	}
 
-	__int32 n_tiles = _mm_popcnt_u32(result_mask);
-
-	//printf_s(" %i ", n_tiles);
-
-	for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
-
-		unsigned long i_tile;
-		_BitScanForward(&i_tile, result_mask);
-		result_mask ^= 0x1 << i_tile;
+	for (__int32 i_tile = 0; i_tile < 16; i_tile++) {
 
 		__int32 w_tile[2];
 		w_tile[0] = w_table[0][i_tile];
@@ -579,7 +508,6 @@ void Process_Fragment_64x64(
 			i_tile,
 			i_buffer_in,
 			coverage_mask,
-			depth_table[i_tile],
 			raster_output,
 			shader_input
 		);
@@ -601,37 +529,8 @@ void Process_Fragments(
 	const __m128 zero = set_all(0.0f);
 
 	shader_input.tile_mask_16x16 = 0x0;
+	shader_input.tile_mask_64x64 = 0x0;
 
-	//===============================================================================================
-
-
-	{
-		const float step[] = { 4.0f, 16.0f };
-		const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
-
-		for (__int32 i_level = 0; i_level < 2; i_level++) {
-
-			const float step_x = shader_input.depth_interpolants[X] * step[i_level];
-			const float step_y = shader_input.depth_interpolants[Y] * step[i_level];
-
-			__m128 x_table = series * set_all(step_x);
-			__m128 y_table_start = zero;
-			__m128 y_table_step = set_all(step_y);
-
-			shader_input.step_table[i_level][0] = y_table_start + x_table;
-			y_table_start += y_table_step;
-			shader_input.step_table[i_level][1] = y_table_start + x_table;
-			y_table_start += y_table_step;
-			shader_input.step_table[i_level][2] = y_table_start + x_table;
-			y_table_start += y_table_step;
-			shader_input.step_table[i_level][3] = y_table_start + x_table;
-
-			shader_input.corner_seed[i_level][3] = 0.0f;
-			shader_input.corner_seed[i_level][2] = step_x;
-			shader_input.corner_seed[i_level][1] = step_y;
-			shader_input.corner_seed[i_level][0] = step_x + step_y;
-		}
-	}
 	//===============================================================================================
 
 	{
@@ -642,24 +541,12 @@ void Process_Fragments(
 
 			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
 			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
-			const __int32 i_tile = i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 i_buffer_tile_64 = i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
-			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
-
-			__int32 x_fragment;
-			__int32 y_fragment;
-			decode_morton(i_buffer_tile_64, x_fragment, y_fragment);
-			x_fragment += x_tile;
-			y_fragment += y_tile;
-			float z_seed = (x_fragment * shader_input.depth_interpolants[X]) + (y_fragment * shader_input.depth_interpolants[Y]) + shader_input.depth_interpolants[Z];
 
 			Process_Fragment_64x64(
 
 				raster_fragment.w,
 				i_buffer,
 				coverage_mask,
-				z_seed,
 				raster_output,
 				shader_input
 			);
@@ -674,16 +561,6 @@ void Process_Fragments(
 
 			const __int32 i_buffer = raster_fragment.buffer_mask_packed >> 16;
 			const unsigned __int32 coverage_mask = raster_fragment.buffer_mask_packed & 0xffff;
-			const __int32 i_tile = i_buffer / (display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 i_buffer_tile_16 = i_buffer - (i_tile * display_::TILE_SIZE * display_::TILE_SIZE);
-			const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
-			const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
-			__int32 x_fragment;
-			__int32 y_fragment;
-			decode_morton(i_buffer_tile_16, x_fragment, y_fragment);
-			x_fragment += x_tile;
-			y_fragment += y_tile;
-			float z_seed = (x_fragment * shader_input.depth_interpolants[X]) + (y_fragment * shader_input.depth_interpolants[Y]) + shader_input.depth_interpolants[Z];
 
 			Process_Fragment_16x16(
 
@@ -691,7 +568,6 @@ void Process_Fragments(
 				0,
 				i_buffer,
 				coverage_mask,
-				z_seed,
 				raster_output,
 				shader_input
 			);
@@ -736,8 +612,10 @@ void Process_Fragments(
 
 			const __int32 i_buffer_depth_4x4 = i_buffer / (4 * 4);
 			const __int32 i_buffer_depth_16x16 = i_buffer / (16 * 16);
+			const __int32 i_buffer_depth_64x64 = i_buffer / (64 * 64);
 			shader_input.depth_tiles_4x4[i_buffer_depth_4x4] = shader_input.z_max;
 			shader_input.tile_mask_16x16 |= one_bit_64 << i_buffer_depth_16x16;
+			shader_input.tile_mask_64x64 |= one_bit_64 << i_buffer_depth_64x64;
 		}
 	}
 	//===============================================================================================
@@ -775,6 +653,42 @@ void Process_Fragments(
 			z_out = min_vec(z_max, z_out);
 
 			shader_input.depth_tiles_16x16[i_tile_16x16] = store_s(z_out);
+		}
+	}
+	{
+		__int64 n_tiles = _mm_popcnt_u64(shader_input.tile_mask_64x64);
+
+		//printf_s(" %llu ", n_tiles);
+
+		for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
+
+			unsigned long i_tile_64x64;
+			_BitScanForward64(&i_tile_64x64, shader_input.tile_mask_64x64);
+			shader_input.tile_mask_64x64 ^= one_bit_64 << i_tile_64x64;
+
+			const __int32 i_tile_16x16 = i_tile_64x64 * (4 * 4);
+
+			__m128 depth_16x16[4];
+			depth_16x16[0] = load_u(shader_input.depth_tiles_16x16 + i_tile_16x16 + (0 * 4));
+			depth_16x16[1] = load_u(shader_input.depth_tiles_16x16 + i_tile_16x16 + (1 * 4));
+			depth_16x16[2] = load_u(shader_input.depth_tiles_16x16 + i_tile_16x16 + (2 * 4));
+			depth_16x16[3] = load_u(shader_input.depth_tiles_16x16 + i_tile_16x16 + (3 * 4));
+
+			__m128 z_max;
+			z_max = depth_16x16[0];
+			z_max = min_vec(depth_16x16[1], z_max);
+			z_max = min_vec(depth_16x16[2], z_max);
+			z_max = min_vec(depth_16x16[3], z_max);
+
+			__m128 z_out = z_max;
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+			z_max = rotate_left(z_max);
+			z_out = min_vec(z_max, z_out);
+
+			shader_input.depth_tiles_64x64[i_tile_64x64] = store_s(z_out);
 		}
 	}
 }

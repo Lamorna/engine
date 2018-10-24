@@ -245,9 +245,42 @@ void process_16x16(
 	__int32 w_in[3][16],
 	__int32 reject_table[3][3][4][4],
 	__int32 accept_table[3][3][4][4],
+	float depth_table[4 * 4],
 	raster_output_& raster_output
 
 ) {
+	const __m128 zero = set_all(0.0f);
+	const __int32 i_buffer_16 = i_buffer_in + (i_tile_in * 16 * 16);
+
+	unsigned __int32 depth_mask = 0x0;
+	{
+		float max_table[4 * 4];
+		for (__int32 i = 0; i < 4; i++) {
+			store_u(zero, max_table + (i * 4));
+		}
+		for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
+
+			__m128 seed = set_all(raster_output.corner_seed[0][i_corner]) + set_all(depth_table[i_tile_in]);
+
+			for (__int32 i = 0; i < 4; i++) {
+				__m128 max_temp = load_u(max_table + (i * 4));
+				max_temp = max_vec(raster_output.step_table[0][i] + seed, max_temp);
+				store_u(max_temp, max_table + (i * 4));
+			}
+		}
+		const __int32 i_buffer_depth = i_buffer_16 / (4 * 4);
+
+		for (__int32 i = 0; i < 4; i++) {
+			__m128 max_tris = load_u(max_table + (i * 4));
+			__m128 max_buffer = load_u(raster_output.depth_tiles_4x4 + i_buffer_depth + (i * 4));
+			__m128i is_greater = max_tris >= max_buffer;
+			depth_mask |= store_mask(is_greater) << (i * 4);
+		}
+
+		//printf_s(" %i ", depth_mask);
+		//printf_s(" %f , %f | ", z_seed, depth_table[i_tile_in]);
+	}
+
 
 	__int32 w_table[3][4 * 4];
 	unsigned __int32 accept_mask = -1;
@@ -272,9 +305,10 @@ void process_16x16(
 			reject_mask &= reject_edge_mask;
 			accept_mask &= accept_edge_mask;
 		}
+		reject_mask &= depth_mask;
+		accept_mask &= depth_mask;
 		partial_accept_mask = reject_mask ^ accept_mask;
 	}
-	const __int32 i_buffer_16 = i_buffer_in + (i_tile_in * 16 * 16);
 	{
 		__int32 n_tiles = _mm_popcnt_u32(accept_mask);
 		for (__int32 i_bit = 0; i_bit < n_tiles; i_bit++) {
@@ -341,9 +375,42 @@ void process_64x64(
 	__int32 w_in[3],
 	__int32 reject_table[3][3][4][4],
 	__int32 accept_table[3][3][4][4],
+	float depth_seed,
 	raster_output_& raster_output
 
 ) {
+	const __m128 zero = set_all(0.0f);
+
+	unsigned __int32 depth_mask = 0x0;
+	float depth_table[4 * 4];
+	{
+		float max_table[4 * 4];
+		for (__int32 i = 0; i < 4; i++) {
+			store_u(zero, max_table + (i * 4));
+		}
+		for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
+
+			__m128 seed = set_all(raster_output.corner_seed[1][i_corner]) + set_all(depth_seed);
+
+			for (__int32 i = 0; i < 4; i++) {
+				__m128 max_temp = load_u(max_table + (i * 4));
+				__m128 depth = raster_output.step_table[1][i] + seed;
+				max_temp = max_vec(depth, max_temp);
+				store_u(max_temp, max_table + (i * 4));
+				store_u(depth, depth_table + (i * 4));
+			}
+		}
+		const __int32 i_buffer_depth = i_buffer_in / (16 * 16);
+
+		for (__int32 i = 0; i < 4; i++) {
+			__m128 max_tris = load_u(max_table + (i * 4));
+			__m128 max_buffer = load_u(raster_output.depth_tiles_16x16 + i_buffer_depth + (i * 4));
+			__m128i is_greater = max_tris >= max_buffer;
+			depth_mask |= store_mask(is_greater) << (i * 4);
+		}
+
+		//printf_s(" %i ", depth_mask);
+	}
 	__int32 w_table[3][4 * 4];
 	unsigned __int32 accept_mask = -1;
 	unsigned __int32 partial_accept_mask;
@@ -367,6 +434,8 @@ void process_64x64(
 			reject_mask &= reject_edge_mask;
 			accept_mask &= accept_edge_mask;
 		}
+		reject_mask &= depth_mask;
+		accept_mask &= depth_mask;
 		partial_accept_mask = reject_mask ^ accept_mask;
 	}
 	{
@@ -388,7 +457,7 @@ void process_64x64(
 			_BitScanForward(&i_tile, partial_accept_mask);
 			partial_accept_mask ^= 0x1 << i_tile;
 
-			process_16x16(i_buffer_in, i_tile, w_table, reject_table, accept_table, raster_output);
+			process_16x16(i_buffer_in, i_tile, w_table, reject_table, accept_table, depth_table, raster_output);
 		}
 	}
 }
@@ -473,6 +542,7 @@ void Rasterise_Tile(
 
 	const __int32 i_buffer_in,
 	const int2_& tile_origin,
+	float depth_seed,
 	raster_data_& raster_data,
 	raster_output_& raster_output
 
@@ -536,6 +606,7 @@ void Rasterise_Tile(
 		w_reject_32,
 		raster_output.reject_table,
 		raster_data.accept_table,
+		depth_seed,
 		raster_output
 	);
 }
@@ -625,26 +696,74 @@ void Rasteriser(
 			raster_output.reject_step[i_edge][Y] = raster_data.is_offset[i_edge][X] ? -step_y : step_y;
 		}
 	}
+	// ===============================================================
+	{
+		const float step[] = { 4.0f, 16.0f, 64.0f };
+		const __m128 series = set(0.0f, 1.0f, 2.0f, 3.0f);
+		const __m128 zero = set_all(0.0f);
 
-	__int32 i_tile = 0;
-	for (__int32 y_tile = 0; y_tile < display_::BIN_SIZE; y_tile += display_::TILE_SIZE) {
-		for (__int32 x_tile = 0; x_tile < display_::BIN_SIZE; x_tile += display_::TILE_SIZE) {
+		for (__int32 i_level = 0; i_level < 3; i_level++) {
 
-			int2_ tile_origin;
-			tile_origin.x = x_tile - display_::TILE_SIZE;
-			tile_origin.y = y_tile - display_::TILE_SIZE;
+			const float step_x = raster_output.depth_interpolants[X] * step[i_level];
+			const float step_y = raster_output.depth_interpolants[Y] * step[i_level];
+
+			__m128 x_table = series * set_all(step_x);
+			__m128 y_table_start = zero;
+			__m128 y_table_step = set_all(step_y);
+
+			raster_output.step_table[i_level][0] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			raster_output.step_table[i_level][1] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			raster_output.step_table[i_level][2] = y_table_start + x_table;
+			y_table_start += y_table_step;
+			raster_output.step_table[i_level][3] = y_table_start + x_table;
+
+			raster_output.corner_seed[i_level][3] = 0.0f;
+			raster_output.corner_seed[i_level][2] = step_x;
+			raster_output.corner_seed[i_level][1] = step_y;
+			raster_output.corner_seed[i_level][0] = step_x + step_y;
+		}
+	}
+	// ===============================================================
+
+	for (__int32 i_tile = 0; i_tile < 4; i_tile++) {
+
+		const __int32 x_tile = (i_tile % 2) * display_::TILE_SIZE;
+		const __int32 y_tile = (i_tile / 2) * display_::TILE_SIZE;
+
+		float depth_seed;
+		bool is_valid = true;
+		{
+			depth_seed = (x_tile * raster_output.depth_interpolants[X]) + (y_tile * raster_output.depth_interpolants[Y]) + raster_output.depth_interpolants[Z];
+
+			float max_tris = 0.0f;
+			for (__int32 i_corner = 0; i_corner < 4; i_corner++) {
+				max_tris = max(depth_seed + raster_output.corner_seed[2][i_corner], max_tris);
+			}
+			float max_buffer = raster_output.depth_tiles_64x64[i_tile];
+			is_valid = max_tris >= max_buffer;
+		}
+
+		//printf_s(" %i ", is_valid);
+
+		int2_ tile_origin;
+
+		tile_origin.x = x_tile - display_::TILE_SIZE;
+		tile_origin.y = y_tile - display_::TILE_SIZE;
+		const __int32 i_buffer = i_tile * (display_::TILE_SIZE * display_::TILE_SIZE);
+
+		if (is_valid) {
 
 			Rasterise_Tile(
 
-				i_tile,
+				i_buffer,
 				tile_origin,
+				depth_seed,
 				raster_data,
 				raster_output
 
 			);
-
-			i_tile += (display_::TILE_SIZE * display_::TILE_SIZE);
-			//i_tile++;
 		}
 	}
 }

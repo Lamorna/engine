@@ -22,6 +22,8 @@ struct raster_data_ {
 	int2_ bb_min;
 	int2_ bb_max;
 	int2_64_ v[3];
+
+
 };
 
 struct raster_fragment_ {
@@ -60,6 +62,12 @@ struct raster_output_ {
 
 	__int32 reject_step[3][2];
 
+	float depth_interpolants[3];
+	__m128 step_table[3][4];
+	float corner_seed[3][4];
+	float* depth_tiles_4x4;
+	float* depth_tiles_16x16;
+	float* depth_tiles_64x64;
 };
 
 void Raster_Setup(

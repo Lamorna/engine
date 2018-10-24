@@ -111,8 +111,9 @@ void systems_::command_::write_colour(
 	draw_call_* draw_calls = command_buffer.draw_calls;
 
 	component_fetch_ component_fetch;
-	component_fetch.n_excludes = 1;
+	component_fetch.n_excludes = 2;
 	component_fetch.exclude_ids[0] = component_id_::COLOUR_SPACE;
+	component_fetch.exclude_ids[1] = component_id_::ANIMATION;
 	component_fetch.n_components = 2;
 	component_fetch.component_ids[0] = component_id_::COLOUR;
 	component_fetch.component_ids[1] = component_id_::DRAW;

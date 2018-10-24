@@ -259,6 +259,7 @@ struct display_ {
 
 	float depth_tiles_4x4[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (4 * 4)];
 	float depth_tiles_16x16[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (16 * 16)];
+	float depth_tiles_64x64[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (64 * 64)];
 
 	HWND handle_window;
 	IDirect3DDevice9* d3d9_device;
@@ -281,17 +282,15 @@ struct shader_input_ {
 	__m128 barycentric[2][3];
 	vertex4_ gradients[NUM_VERTEX_ATTRIBUTES][4];
 
-	float z_max;
-	float* depth_tiles_4x4;
-	float* depth_tiles_16x16;
-	float depth_interpolants[3];
 	__int32 x;
 	__int32 y;
 	unsigned __int64 tile_mask_16x16;
-
-	__m128 step_table[2][4];
-	float corner_seed[2][4];
-
+	unsigned __int64 tile_mask_64x64;
+	float z_max;
+	float* depth_tiles_4x4;
+	float* depth_tiles_16x16;
+	float* depth_tiles_64x64;
+	//float depth_interpolants[3];
 };
 
 //======================================================================
