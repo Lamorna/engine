@@ -39,11 +39,57 @@ void Render_Animated_Model(
 
 	float3_ vertices[MAX_VERTICES];
 
-
 	draw_call_ &draw_call = command_buffer.draw_calls[i_draw_call];
 	draw_call.i_thread = i_thread;
 
-	for (__int32 i_model = 0; i_model < draw_call.n_models; i_model++) {
+	struct data_ {
+
+		enum {
+			MAX_ENTRIES = 32,
+		};
+
+		__int32 i_model;
+		float depth;
+	};
+
+	data_ data[data_::MAX_ENTRIES];
+
+	{
+		for (__int32 i_model = 0; i_model < draw_call.n_models; i_model++) {
+
+			float3_ local_position;
+			local_position.x = (float)(draw_call.position[i_model].x - command_buffer.position_camera.x) * r_fixed_scale_real;
+			local_position.y = (float)(draw_call.position[i_model].y - command_buffer.position_camera.y) * r_fixed_scale_real;
+			local_position.z = (float)(draw_call.position[i_model].z - command_buffer.position_camera.z) * r_fixed_scale_real;
+
+			float3_ t_position;
+			Vector_X_Matrix(local_position, command_buffer.m_clip_space, t_position);
+
+			data[i_model].depth = -t_position.z;
+			data[i_model].i_model = i_model;
+		}
+	}
+	{
+		for (__int32 i_model = 1; i_model < draw_call.n_models; i_model++) {
+
+			for (__int32 i_iterate = i_model; i_iterate > 0; i_iterate--) {
+
+				data_ temp[2];
+				unsigned __int32 index = 0;
+				temp[index] = data[i_iterate];
+				temp[index ^ 1] = data[i_iterate - 1];
+				index ^= data[i_iterate].depth < data[i_iterate - 1].depth;
+				data[i_iterate] = temp[index];
+				data[i_iterate - 1] = temp[index ^ 1];
+			}
+		}
+	}
+
+	for (__int32 i_model_index = 0; i_model_index < draw_call.n_models; i_model_index++) {
+
+		const __int32 i_model = data[i_model_index].i_model;
+
+		//printf_s(" %f ", data[i_model_index].depth);
 
 		const __int32 model_id = draw_call.model_id[i_model];
 		const model_& model = model_manager.model[draw_call.model_id[i_model]];
@@ -112,6 +158,8 @@ void Render_Animated_Model(
 			display.screen_bin[i_thread]
 		);
 	}
+	//printf_s(" \n");
+
 }
 
 /*

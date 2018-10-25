@@ -25,6 +25,8 @@ struct lightmap_manager_ {
 		N_SURFACES_PER_MODEL = 6,
 		MAX_MODEL_NODES = 512,
 		MAX_ACTIVE_MODELS = 128,
+
+		MAX_BASE_TEXTURES = 8,
 	};
 
 	struct bvh_ {
@@ -79,6 +81,8 @@ struct lightmap_manager_ {
 
 	CACHE_ALIGN_PROPER model_node_ model_nodes[grid_::NUM_NODES + 1][MAX_MODEL_NODES];
 	CACHE_ALIGN_PROPER active_node_handler_ active_node_handlers[thread_pool_::MAX_WORKER_THREADS];
+
+	texture_handler_ base_textures[MAX_BASE_TEXTURES];
 };
 
 struct lightmap_bin_ {
@@ -111,8 +115,9 @@ struct memory_chunk_;
 
 void Initialise_Light_Maps(
 
-	const lightmap_manager_&,
-	model_manager_&
+	lightmap_manager_&,
+	model_manager_&,
+	memory_chunk_&
 );
 
 void Compute_Light_Map_Gradients(

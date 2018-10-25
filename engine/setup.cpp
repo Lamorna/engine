@@ -1540,7 +1540,7 @@ void Initialise_Systems(
 
 		);
 
-		Initialise_Light_Maps(lightmap_manager, model_manager);
+		Initialise_Light_Maps(lightmap_manager, model_manager, memory_chunk);
 	}
 	//=======================================================================================================================
 	// copy static command buffer data across buffers

@@ -79,9 +79,12 @@ void Create_Map_Model(
 
 		float3_ random_colours[] = {
 
-			{ 10.0f, 0.0f, 0.0f },
+		{ 10.0f, 0.0f, 0.0f },
 		{ 0.0f, 10.0f, 0.0f },
 		{ 0.0f, 0.0f, 10.0f },
+		{ 10.0f, 0.0f, 10.0f },
+		{ 0.0f, 10.0f, 10.0f },
+		{ 10.0f, 10.0f, 0.0f },
 		//{ 26.0f, 26.0f, 0.0f },
 		//{ 13.0f, 26.0f, 38.0f },
 		//{ 0.0f, 0.0f, 77.0f },
@@ -95,9 +98,8 @@ void Create_Map_Model(
 			float3_ increment = { 0.0f, 0.0f, 0.0f };
 			for (__int32 i_vertex = 0; i_vertex < model_cube.n_colour_vertices; i_vertex++) {
 
-				//model_map.colour_vertices[model_map.n_colour_vertices] = model_cube.colour_vertices[i_vertex];
-				//model_map.colour_vertices[model_map.n_colour_vertices] = colour;
 				model_map.attribute_vertices[model_::ATTRIBUTE_COLOUR][model_map.n_colour_vertices] = random_colours[i_model % n_colours] + increment;
+				//model_map.attribute_vertices[model_::ATTRIBUTE_COLOUR][model_map.n_colour_vertices] = random_colours[i_vertex % n_colours] + increment;
 				model_map.attribute_vertices[model_::ATTRIBUTE_COLOUR][model_map.n_colour_vertices] += i_vertex < (model_cube.n_colour_vertices / 2) ? 80.0f : 0.0f;
 				model_map.n_colour_vertices++;
 				//increment += 10.0f;

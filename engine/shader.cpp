@@ -758,7 +758,7 @@ void Vertex_Lighting_PLAYER(
 	normal.z *= mag;
 
 	float3_ light_position = { 0.0f, 0.0f, 0.0f };
-	float3_ light_colour = { 100.0f, 100.0f, 10.0f };
+	float3_ light_colour = { 100.0f, 100.0f, 100.0f };
 
 	for (__int32 i_vertex = 0; i_vertex < 3; i_vertex++) {
 

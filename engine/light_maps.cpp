@@ -881,23 +881,35 @@ void systems_::lightmap_::fade_lightmaps(
 */
 void Initialise_Light_Maps(
 
-	const lightmap_manager_& lightmap_manager,
-	model_manager_& model_manager
+	lightmap_manager_& lightmap_manager,
+	model_manager_& model_manager,
+	memory_chunk_& memory
 
 	) {
 
-	const unsigned __int32 clear_colour = 100 << 8;
+	//const unsigned __int32 clear_colour = 100 << 8;
 
-	const __int32 colours[] = {
+	//const __int32 colours[] = {
 
-		20 << 16 | 10 << 8 | 10 << 0,
-		10 << 16 | 20 << 8 | 10 << 0,
-		10 << 16 | 10 << 8 | 20 << 0,
+	//	20 << 16 | 10 << 8 | 10 << 0,
+	//	10 << 16 | 20 << 8 | 10 << 0,
+	//	10 << 16 | 10 << 8 | 20 << 0,
+	//};
+	//const __int32 n_colours = sizeof(colours) / sizeof(colours[0]);
+
+	const char* file_names[] = {
+
+		"textures/floor.jpg",
+		"textures/test_2.bmp",
+		"textures/city4_5.bmp",
+		"textures/woodflr1_5.bmp",
 	};
-	const __int32 n_colours = sizeof(colours) / sizeof(colours[0]);
+	const __int32 n_textures = sizeof(file_names) / sizeof(file_names[0]);
 
-	const model_& model_texture = model_manager.model[model_::id_::CUBE];
-	texture_handler_& read_texture = model_texture.texture_handlers[0];
+	for (__int32 i_texture = 0; i_texture < n_textures; i_texture++) {
+
+		Load_Image_STB(file_names[i_texture], lightmap_manager.base_textures[i_texture], memory);
+	}
 
 	for (__int32 i_node = 0; i_node < grid_::NUM_NODES; i_node++) {
 
@@ -905,35 +917,40 @@ void Initialise_Light_Maps(
 
 		for (__int32 i_model = 0; i_model < lightmap_manager.n_model_nodes[i_node]; i_model++) {
 
+			texture_handler_& texture_src = lightmap_manager.base_textures[(i_model + i_node) % n_textures];
+
 			for (__int32 i_surface = 0; i_surface < lightmap_manager_::N_SURFACES_PER_MODEL; i_surface++) {
 
 			const lightmap_data_& lightmap_data = lightmap_manager.model_nodes[i_node][i_model].lightmap_data[i_surface];
-			texture_handler_& texture_handler = model.texture_handlers[lightmap_data.i_lightmap[lightmap_data.i_read]];
+			texture_handler_& texture_dest = model.texture_handlers[lightmap_data.i_lightmap[lightmap_data.i_read]];
 
-				__int32 width_lightmap = texture_handler.width;
-				__int32 height_lightmap = texture_handler.height;
+				__int32 width_dest = texture_dest.width;
+				__int32 height_dest = texture_dest.height;
+				__int32 width_src = texture_src.width;
+				__int32 height_src = texture_src.height;
 
-				for (__int32 i_mip_level = 0; i_mip_level < texture_handler.n_mip_levels; i_mip_level++) {
+				for (__int32 i_mip_level_dest = 0; i_mip_level_dest < texture_dest.n_mip_levels; i_mip_level_dest++) {
 
-					__int32 index = 0;
-					__int32 index_read = 0;
-					for (__int32 y = 0; y < height_lightmap; y++) {
+					__int32 index_dest = 0;
+					for (__int32 y = 0; y < height_dest; y++) {
 
-						for (__int32 x = 0; x < width_lightmap; x++) {
+						for (__int32 x = 0; x < width_dest; x++) {
 
-							//texture_handler.texture[i_mip_level][index] = clear_colour;
-							__int32 width_read = x % read_texture.width;
-							__int32 height_read = y % read_texture.height;
-							texture_handler.texture[i_mip_level][index] = read_texture.texture[0][(height_read * read_texture.width) + width_read] + colours[i_model % n_colours];
-							//texture_handler.texture[i_mip_level][index] = read_texture.texture[0][index_read] + colours[i_model % n_colours];
-							index++;
-							index_read++;
-							index_read %= (read_texture.width * read_texture.height);
+							__int32 width_read = x % width_src;
+							__int32 height_read = y % height_src;
+							__int32 i_mip_level_src = min(i_mip_level_dest, (texture_src.n_mip_levels - 1));
+							texture_dest.texture[i_mip_level_dest][index_dest] = texture_src.texture[i_mip_level_src][(height_read * width_src) + width_read]; // +colours[i_model % n_colours];
+							index_dest++;
 						}
 					}
 
-					width_lightmap >>= 1;
-					height_lightmap >>= 1;
+					width_dest >>= 1;
+					height_dest >>= 1;
+
+					width_src >>= 1;
+					height_src >>= 1;
+					width_src = width_src == 0 ? 1 : width_src;
+					height_src = height_src == 0 ? 1 : height_src;
 				}
 			}
 		}

@@ -326,6 +326,7 @@ void systems_::player_::fire_projectile(
 	archetype_data_& archetype_data = *func_parameters->archetype_data;
 
 	static const float3_ z_axis = { 0.0f, 0.0f, -1.0f };
+	static const float3_ zero = { 0.0f, 0.0f, 0.0f };
 
 	component_fetch_ player_fetch;
 	{
@@ -393,15 +394,18 @@ void systems_::player_::fire_projectile(
 
 			const __int32 i_projectile = weapon[i_entity].i_begin + weapon[i_entity].i_projectile;
 			base_projectile[i_projectile].position_fixed = position_projectile;
+			move_projectile[i_projectile].velocity = zero;
+			move_projectile[i_projectile].displacement = zero;
 			const __int32 id = weapon[i_entity].projectile_id;
 			base_projectile[i_projectile].scale = component_::weapon_::projectile_data[id].scale;
 			colour_projectile[i_projectile].colour = component_::weapon_::projectile_data[id].colour;
 
 
+
 			if (weapon[i_entity].is_fired) {
 
 				weapon[i_entity].timer = component_::weapon_::projectile_data[id].reload_time;
-				move_projectile[i_projectile].velocity = firing_axis * component_::weapon_::projectile_data[id].speed;;
+				move_projectile[i_projectile].velocity = firing_axis * component_::weapon_::projectile_data[id].speed;
 				projectile_id[i_projectile].type_id = weapon[i_entity].projectile_id;
 				weapon[i_entity].i_projectile = (weapon[i_entity].i_projectile + 1) % weapon[i_entity].n_projectiles;
 			}

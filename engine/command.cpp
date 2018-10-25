@@ -286,79 +286,20 @@ void systems_::command_::write_animated(
 
 	Populate_Fetch_Table(archetype_data, component_fetch);
 
-	struct data_ {
+	for (__int32 i_archetype_index = 0; i_archetype_index < component_fetch.n_archetypes; i_archetype_index++) {
 
-		enum {
-			MAX_ENTRIES = 32,
-		};
+		const __int32 i_archetype = component_fetch.i_archetypes[i_archetype_index];
+		const archetype_& archetype = archetype_data.archetypes[i_archetype];
+		const __int32 n_entities = archetype.n_entities;
 
-		__int32 i_archetype_index;
-		__int32 i_entity;
-		float depth;
-	};
+		component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
+		component_::model_space_* model_space = (component_::model_space_*)component_fetch.table[1][i_archetype_index];
+		component_::animation_* animation = (component_::animation_*)component_fetch.table[2][i_archetype_index];
+		component_::draw_* draw = (component_::draw_*)component_fetch.table[3][i_archetype_index];
 
-	data_ data[data_::MAX_ENTRIES];
-	__int32 n_entries = 0;
+		for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
 
-	{
-		for (__int32 i_archetype_index = 0; i_archetype_index < component_fetch.n_archetypes; i_archetype_index++) {
-
-			const __int32 i_archetype = component_fetch.i_archetypes[i_archetype_index];
-			const archetype_& archetype = archetype_data.archetypes[i_archetype];
-			const __int32 n_entities = archetype.n_entities;
-
-			component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
-
-			for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
-
-				if (!Match_Entity_Mask(i_entity, component_fetch.component_masks, archetype)) { continue; };
-
-				float3_ local_position;
-				local_position.x = (float)(base[i_entity].position_fixed.x - command_buffer.position_camera.x) * r_fixed_scale_real;
-				local_position.y = (float)(base[i_entity].position_fixed.y - command_buffer.position_camera.y) * r_fixed_scale_real;
-				local_position.z = (float)(base[i_entity].position_fixed.z - command_buffer.position_camera.z) * r_fixed_scale_real;
-
-				float3_ t_position;
-				Vector_X_Matrix(local_position, command_buffer.m_clip_space, t_position);
-
-				data[n_entries].depth = - t_position.z;
-				data[n_entries].i_archetype_index = i_archetype_index;
-				data[n_entries].i_entity = i_entity;
-				n_entries++;
-			}
-		}
-	}
-	{
-		for (__int32 i_entry = 1; i_entry < n_entries; i_entry++) {
-
-			for (__int32 i_iterate = i_entry; i_iterate > 0; i_iterate--) {
-
-				data_ temp[2];
-				unsigned __int32 index = 0;
-				temp[index] = data[i_iterate];
-				temp[index ^ 1] = data[i_iterate - 1];
-				index ^= data[i_iterate].depth < data[i_iterate - 1].depth;
-				data[i_iterate] = temp[index];
-				data[i_iterate - 1] = temp[index ^ 1];
-			}
-		}
-	}
-	{
-		//printf_s(" %i \n", n_entries);
-
-		for (__int32 i_entry = 0; i_entry < n_entries; i_entry++) {
-
-			//printf_s(" %f ", data[i_entry].depth);
-
-			const __int32 i_archetype_index = data[i_entry].i_archetype_index;
-			const __int32 i_entity = data[i_entry].i_entity;
-			const __int32 i_archetype = component_fetch.i_archetypes[i_archetype_index];
-			const archetype_& archetype = archetype_data.archetypes[i_archetype];
-
-			component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
-			component_::model_space_* model_space = (component_::model_space_*)component_fetch.table[1][i_archetype_index];
-			component_::animation_* animation = (component_::animation_*)component_fetch.table[2][i_archetype_index];
-			component_::draw_* draw = (component_::draw_*)component_fetch.table[3][i_archetype_index];
+			if (!Match_Entity_Mask(i_entity, component_fetch.component_masks, archetype)) { continue; };
 
 			const __int32 draw_id = draw[i_entity].draw_id;
 			draw_call_& draw_call = draw_calls[draw_id];
@@ -378,7 +319,6 @@ void systems_::command_::write_animated(
 
 			n_models++;
 		}
-		//printf_s(" \n");
 	}
 }
 
