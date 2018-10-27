@@ -106,6 +106,8 @@ void systems_::item_::update_ammo(
 				colour_player[i_entity_camera].colour.f[i_axis] = blend(colour[i_entity].colour.f[i_axis], colour_player[i_entity_camera].colour.f[i_axis], trigger[i_entity].is_triggered);
 			}
 			weapon_player[i_entity_camera].projectile_id = blend_int(item[i_entity].id, weapon_player[i_entity_camera].projectile_id, trigger[i_entity].is_triggered);
+			weapon_player[i_entity_camera].ammo_count += item[i_entity].state_trigger == component_::item_::state_::PICKED_UP ? component_::weapon_::ammo_::LOAD : 0;
+			weapon_player[i_entity_camera].ammo_count = min(weapon_player[i_entity_camera].ammo_count, component_::weapon_::ammo_::MAX);
 		}
 	}
 }

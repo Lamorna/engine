@@ -100,7 +100,7 @@ struct draw_call_ {
 		enum {
 
 			MAP, SHAMBLER = MAP + grid_::NUM_NODES + 1, PLAYER, SCRAG, BOUNCE_PAD, TELEPORTER, PLATFORMS, DOOR, ITEMS,
-			CLOUDS, LAVA, SKYBOX, PARTICLES, PROJECTILES, PATROL_POINTS, TRAP_DOOR, BUTTON, PLATE, COUNT,
+			PARTICLES, PROJECTILES, PATROL_POINTS, TRAP_DOOR, BUTTON, PLATE, CLOUDS, LAVA, SKYBOX, COUNT,
 		};
 	};
 
@@ -365,8 +365,9 @@ struct parameters_::render_ {
 	};
 	struct render_UI_ {
 
+		const command_buffer_handler_* command_buffer_handler;
+		const user_interface_* user_interface;
 		display_* display;
-		user_interface_* user_interface;
 	};
 
 	process_draw_call_ process_draw_call[draw_call_::id_::COUNT];

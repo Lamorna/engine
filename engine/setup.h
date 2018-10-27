@@ -11,7 +11,7 @@
 struct user_interface_ {
 
 	enum {
-		NUM_ELEMENTS = 9,
+		NUM_ELEMENTS = 16,
 	};
 
 	__int32 frame_rate;

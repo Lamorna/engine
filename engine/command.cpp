@@ -18,18 +18,33 @@ void systems_::command_::write_camera_matrix(
 	timer_& timer = *func_parameters->timer;
 	command_buffer_& command_buffer = command_buffer_handler.command_buffers[command_buffer_handler.i_write];
 
-	component_::camera_* camera;
-	__int32 i_entity_camera = Return_Camera_Component(archetype_data, &camera);
-	command_buffer.position_camera = camera[i_entity_camera].position_fixed;
-	command_buffer.m_clip_space[X] = camera[i_entity_camera].m_clip_space[X];
-	command_buffer.m_clip_space[Y] = camera[i_entity_camera].m_clip_space[Y];
-	command_buffer.m_clip_space[Z] = camera[i_entity_camera].m_clip_space[Z];
-	command_buffer.m_clip_space[W] = camera[i_entity_camera].m_clip_space[W];
+	component_fetch_ component_fetch;
+	component_fetch.n_components = 2;
+	component_fetch.n_excludes = 0;
+	component_fetch.component_ids[0] = component_id_::CAMERA;
+	component_fetch.component_ids[1] = component_id_::WEAPON;
+
+	Populate_Fetch_Table(archetype_data, component_fetch);
+
+	
+	const __int32 i_archetype_index = 0;
+	component_::camera_* camera = (component_::camera_*)component_fetch.table[0][i_archetype_index];
+	__int32 i_entity = Return_Camera_Component(archetype_data, &camera);
+
+	command_buffer.position_camera = camera[i_entity].position_fixed;
+	command_buffer.m_clip_space[X] = camera[i_entity].m_clip_space[X];
+	command_buffer.m_clip_space[Y] = camera[i_entity].m_clip_space[Y];
+	command_buffer.m_clip_space[Z] = camera[i_entity].m_clip_space[Z];
+	command_buffer.m_clip_space[W] = camera[i_entity].m_clip_space[W];
 
 	fog_effect_& fog_effect = command_buffer_handler.fog_effect;
 	fog_effect.timer += timer.delta_time * 0.1f;
 	fog_effect.timer = fog_effect.timer > 1.0f ? -1.0f : fog_effect.timer;
 	command_buffer.fog_effect_timer = abs(fog_effect.timer);
+
+	component_::weapon_* weapon = (component_::weapon_*)component_fetch.table[1][i_archetype_index];
+	command_buffer.ui_ammo_counter = weapon[i_entity].ammo_count;
+	command_buffer.ui_ammo_type = weapon[i_entity].projectile_id;
 }
 
 /*

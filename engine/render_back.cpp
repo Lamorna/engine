@@ -566,6 +566,70 @@ void systems_::render_::process_screen_bins(void* void_parameter, __int32 i_thre
 	);
 }
 
+static const unsigned __int32 alpha = (255 << 24) | (159 << 16) | (91 << 8) | (83 << 0);
+
+
+/*
+==================
+==================
+*/
+void Write_UI_Element(
+
+	const __int32 x,
+	const __int32 y,
+	const __int32 scale,
+	const texture_handler_& texture_handler,
+	display_& display
+
+) {
+	const __int32 i_mip_map = 0;
+	const __int32 write_pitch = display.locked_rect.Pitch / 4;
+	unsigned __int32* write_buffer = (unsigned __int32*)display.locked_rect.pBits;
+
+	const __int32 width_src = texture_handler.width * scale;
+	const __int32 height_src = texture_handler.height * scale;
+	__int32 y_dest = (y * write_pitch);
+
+	for (__int32 y_source = 0; y_source < height_src; y_source++) {
+
+		__int32 x_dest = x;
+
+		for (__int32 x_source = 0; x_source < width_src; x_source++) {
+
+			__int32 x_read = x_source / scale;
+			__int32 y_read = y_source / scale;
+			unsigned __int32 srce_colour = texture_handler.texture[i_mip_map][(y_read * texture_handler.width) + x_read];
+			unsigned __int32 dest_colour = write_buffer[y_dest + x_dest];
+			bool is_transparent = srce_colour == alpha;
+			write_buffer[y_dest + x_dest] = is_transparent ? dest_colour : srce_colour;
+			x_dest++;
+		}
+		y_dest += write_pitch;
+	}
+}
+
+/*
+==================
+==================
+*/
+void Get_Radix(
+
+	const __int32 n_places,
+	__int32 value,
+	__int32 radix[6]
+
+) {
+
+	__int32 base = pow(10, n_places - 1);
+
+	for (__int32 i_element = 0; i_element < n_places; i_element++) {
+
+		radix[i_element] = value / base;
+		value -= radix[i_element] * base;
+		base /= 10;
+	}
+}
+
 /*
 ==================
 ==================
@@ -574,52 +638,80 @@ void systems_::render_::process_screen_bins(void* void_parameter, __int32 i_thre
 void systems_::render_::render_UI(void* void_parameter, __int32 i_thread) {
 
 	parameters_::render_::render_UI_ *parameters = (parameters_::render_::render_UI_ *)void_parameter;
-	const display_& display = *parameters->display;
+	display_& display = *parameters->display;
 	const user_interface_& user_interface = *parameters->user_interface;
+	const __int32 i_read = parameters->command_buffer_handler->i_read;
+	const command_buffer_& command_buffer = parameters->command_buffer_handler->command_buffers[i_read];
 
-	const __int32 write_pitch = display.locked_rect.Pitch / 4;
-	unsigned __int32* write_buffer = (unsigned __int32*)display.locked_rect.pBits;
 
-	const unsigned __int32 alpha = (255 << 24) | (159 << 16) | (91 << 8) | (83 << 0);
-	const __int32 i_mip_map = 0;
-	const __int32 n_elements = 4;
-	const __int32 element_width = user_interface.texture_handler[0].width;
-	const __int32 element_height = user_interface.texture_handler[0].height;
-	__int32 offset_x = 0;
 
-	__int32 value = user_interface.frame_rate;
-	__int32 radix[6];
-	__int32 base = 1000;
 
-	for (__int32 i_element = 0; i_element < 4; i_element++) {
+	// ===========================================================================================
+	{
+		const __int32 n_elements = 3;
+		__int32 radix[6];
+		Get_Radix(n_elements, user_interface.frame_rate, radix);
+		const __int32 element_width = user_interface.texture_handler[0].width;
+		__int32 x_offset = 0;
 
-		radix[i_element] = value / base;
-		value -= radix[i_element] * base;
-		base /= 10;
-		//printf_s(" %i , ", radix[i_element]);
-	}
-	//printf_s("\n");
+		for (__int32 i_element = 0; i_element < n_elements; i_element++) {
 
-	for (__int32 i_element = 0; i_element < n_elements; i_element++) {
+			__int32 y_offset = 0;
+			__int32 index = radix[i_element];
+			__int32 scale = 1;
 
-		__int32 y_dest = 0;
-		__int32 index = radix[i_element];
+			Write_UI_Element(
 
-		for (__int32 y_source = 0; y_source < element_width * element_height; y_source += element_width) {
+				x_offset,
+				y_offset,
+				scale,
+				user_interface.texture_handler[index],
+				display
+			);
 
-			__int32 x_dest = offset_x;
-
-			for (__int32 x_source = 0; x_source < element_width; x_source++) {
-
-				unsigned __int32 srce_colour = user_interface.texture_handler[index].texture[i_mip_map][y_source + x_source];
-				unsigned __int32 dest_colour = write_buffer[y_dest + x_dest];
-				bool is_transparent = srce_colour == alpha;
-				write_buffer[y_dest + x_dest] = is_transparent ? dest_colour : srce_colour;
-				x_dest++;
-			}
-			y_dest += write_pitch;
+			x_offset += element_width;
 		}
+	}
+	// ===========================================================================================
+	{
+		const __int32 i_icon = 10 + command_buffer.ui_ammo_type;
+		__int32 x_offset = 20;
+		__int32 y_offset = 690;
+		__int32 scale = 2;
 
-		offset_x += element_width;
+		Write_UI_Element(
+
+			x_offset,
+			y_offset,
+			scale,
+			user_interface.texture_handler[i_icon],
+			display
+		);
+	}
+	// ===========================================================================================
+	{
+		const __int32 n_elements = 2;
+		__int32 radix[6];
+		Get_Radix(n_elements, command_buffer.ui_ammo_counter, radix);
+		const __int32 element_width = user_interface.texture_handler[0].width * 2;
+		__int32 x_offset = 100;
+		__int32 y_offset = 700;
+
+		for (__int32 i_element = 0; i_element < n_elements; i_element++) {
+
+			__int32 index = radix[i_element];
+			__int32 scale = 2;
+
+			Write_UI_Element(
+
+				x_offset,
+				y_offset,
+				scale,
+				user_interface.texture_handler[index],
+				display
+			);
+
+			x_offset += element_width;
+		}
 	}
 }

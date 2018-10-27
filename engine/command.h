@@ -39,6 +39,9 @@ struct command_buffer_ {
 
 	float fog_effect_timer;
 	const model_* model;
+
+	__int32 ui_ammo_counter;
+	__int32 ui_ammo_type;
 };
 
 struct command_buffer_handler_ {

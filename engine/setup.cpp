@@ -142,7 +142,7 @@ void Load_UI(
 
 ) {
 
-	const char* file_names[user_interface_::NUM_ELEMENTS] = {
+	const char* file_names[] = {
 
 	{ "UI/NUM_0.bmp" },
 	{ "UI/NUM_1.bmp" },
@@ -153,13 +153,19 @@ void Load_UI(
 	{ "UI/NUM_6.bmp" },
 	{ "UI/NUM_7.bmp" },
 	{ "UI/NUM_8.bmp" },
+	{ "UI/NUM_8.bmp" },
+	{ "UI/icon_0.bmp" },
+	{ "UI/icon_1.bmp" },
+	{ "UI/icon_2.bmp" },
 	};
 
-	for (__int32 i_element = 0; i_element < user_interface_::NUM_ELEMENTS; i_element++) {
+	const __int32 n_elements = sizeof(file_names) / sizeof(file_names[0]);
+
+	for (__int32 i_element = 0; i_element < n_elements; i_element++) {
 		Load_Image_STB(file_names[i_element], user_interface.texture_handler[i_element], memory_chunk);
 	}
 
-	user_interface.frame_rate = 6278;
+	user_interface.frame_rate = 0;
 }
 
 /*

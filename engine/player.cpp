@@ -385,7 +385,8 @@ void systems_::player_::fire_projectile(
 			weapon[i_entity].timer = max(weapon[i_entity].timer, 0.0f);
 			bool is_time_elapsed = weapon[i_entity].timer == 0.0f;
 			bool is_key_pressed = (user_input.input_mask & (1 << user_input_::FIRE)) != 0x0;
-			weapon[i_entity].is_fired = is_time_elapsed && is_key_pressed;
+			bool is_ammo_remaining = weapon[i_entity].ammo_count > 0;
+			weapon[i_entity].is_fired = is_time_elapsed && is_key_pressed && is_ammo_remaining;
 
 			weapon[i_entity].projectile_id += (user_input.input_mask & (0x1 << user_input_::WEAPON_NEXT)) != 0x0;
 			weapon[i_entity].projectile_id -= (user_input.input_mask & (0x1 << user_input_::WEAPON_PREV)) != 0x0;
@@ -393,13 +394,16 @@ void systems_::player_::fire_projectile(
 			weapon[i_entity].projectile_id = weapon[i_entity].projectile_id == component_::weapon_::id_::COUNT ? 0 : weapon[i_entity].projectile_id;
 
 			const __int32 i_projectile = weapon[i_entity].i_begin + weapon[i_entity].i_projectile;
-			base_projectile[i_projectile].position_fixed = position_projectile;
-			move_projectile[i_projectile].velocity = zero;
-			move_projectile[i_projectile].displacement = zero;
 			const __int32 id = weapon[i_entity].projectile_id;
-			base_projectile[i_projectile].scale = component_::weapon_::projectile_data[id].scale;
-			colour_projectile[i_projectile].colour = component_::weapon_::projectile_data[id].colour;
 
+			if (is_ammo_remaining) {
+
+				base_projectile[i_projectile].position_fixed = position_projectile;
+				move_projectile[i_projectile].velocity = zero;
+				move_projectile[i_projectile].displacement = zero;
+				base_projectile[i_projectile].scale = component_::weapon_::projectile_data[id].scale;
+				colour_projectile[i_projectile].colour = component_::weapon_::projectile_data[id].colour;
+			}
 
 
 			if (weapon[i_entity].is_fired) {
@@ -408,6 +412,8 @@ void systems_::player_::fire_projectile(
 				move_projectile[i_projectile].velocity = firing_axis * component_::weapon_::projectile_data[id].speed;
 				projectile_id[i_projectile].type_id = weapon[i_entity].projectile_id;
 				weapon[i_entity].i_projectile = (weapon[i_entity].i_projectile + 1) % weapon[i_entity].n_projectiles;
+				weapon[i_entity].ammo_count--;
+				weapon[i_entity].ammo_count = max(weapon[i_entity].ammo_count, 0);
 			}
 		}
 	}

@@ -2706,6 +2706,7 @@ void COMPONENT_Populate_Table(
 			weapon[i_model].i_projectile = 0;
 			weapon[i_model].projectile_id = component_::weapon_::id_::KILL;
 			weapon[i_model].timer = 0.0f;
+			weapon[i_model].ammo_count = component_::weapon_::ammo_::LOAD;
 			weapon[i_model].is_fired = false;
 
 

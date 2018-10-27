@@ -786,6 +786,7 @@ void Load_Frame_Jobs(
 	{
 		render.render_UI.display = &display;
 		render.render_UI.user_interface = &user_interface;
+		render.render_UI.command_buffer_handler = &command_buffer_handler;
 
 		jobs[n_jobs].type = job_group_::id_::RENDER_UI;
 		jobs[n_jobs].function = systems_::render_::render_UI;

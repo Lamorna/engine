@@ -547,6 +547,15 @@ struct component_::health_ {
 };
 struct component_::weapon_ {
 
+	struct ammo_ {
+
+		enum {
+
+			LOAD = 16,
+			MAX = 99,
+		};
+	};
+
 	struct id_ {
 
 		enum {
@@ -575,6 +584,7 @@ struct component_::weapon_ {
 	__int32 i_projectile;
 	__int32 i_begin;
 	__int32 n_projectiles;
+	__int32 ammo_count;
 	float timer;
 	bool is_fired;
 };
