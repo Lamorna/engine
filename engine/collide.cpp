@@ -268,8 +268,10 @@ void Collision_Routine_ROTATED(
 					numerator /= fixed_scale;
 					denominator /= fixed_scale;
 
-					lead_denominator = blend_int(denominator, lead_denominator, (__int64)(i_side == 0));
-					denominator = blend_int((__int64)(1 * fixed_scale), denominator, (__int64)(denominator == 0));
+					//lead_denominator = blend_int(denominator, lead_denominator, (__int64)(i_side == 0));
+					lead_denominator = i_side == 0 ? denominator : lead_denominator;
+					//denominator = blend_int((__int64)(1 * fixed_scale), denominator, (__int64)(denominator == 0));
+					denominator = denominator == 0 ? (__int64)(1 * fixed_scale) : denominator;
 					t_temp[i_side] = (numerator * fixed_scale) / denominator;
 				}
 
@@ -278,19 +280,24 @@ void Collision_Routine_ROTATED(
 
 				bool is_entering = lead_denominator < 0;
 				bool is_zero = lead_denominator == 0;
-				__int32 index = blend_int(0, 1, is_entering);
+				//__int32 index = blend_int(0, 1, is_entering);
+				__int32 index = is_entering ? 0 : 1;
 				__int64 t_enter = (__int32)t_temp[index];
 				__int64 t_exit = (__int32)t_temp[index ^ 1];
 				plane_signs[0][i_normal] = sign_modifier[index];
 				plane_signs[1][i_normal] = sign_modifier[index ^ 1];
 
-				t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
-				t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				//t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
+				//t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				t_enter = is_zero ? (__int64)INT_MIN : t_enter;
+				t_exit = is_zero ? (__int64)INT_MAX : t_exit;
 
 				bool is_not_valid = (t_exit < t_enter) || (t_enter > t_end) || (t_exit < t_begin);
 				bool is_valid = (t_enter > t_hit) && (!is_not_valid);
-				t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
-				i_axis_out = blend_int(i_normal, i_axis_out, is_valid);
+				//t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
+				t_hit = is_valid ? t_enter :  t_hit;
+				//i_axis_out = blend_int(i_normal, i_axis_out, is_valid);
+				i_axis_out = is_valid ? i_normal : i_axis_out;
 			}
 
 			if (t_hit > t_default) {
@@ -367,10 +374,13 @@ void Collision_Routine_MOVING(
 				bool is_zero = collider_data.direction.i[i_axis] == 0;
 
 				__int64 bounds[2];
-				bounds[0] = blend_int(extent.i[i_axis], -extent.i[i_axis], is_entering);
-				bounds[1] = blend_int(-extent.i[i_axis], extent.i[i_axis], is_entering);
+				//bounds[0] = blend_int(extent.i[i_axis], -extent.i[i_axis], is_entering);
+				bounds[0] = is_entering ? extent.i[i_axis] : -extent.i[i_axis];
+				//bounds[1] = blend_int(-extent.i[i_axis], extent.i[i_axis], is_entering);
+				bounds[1] = is_entering ? -extent.i[i_axis] : extent.i[i_axis];
 
-				__int64 denominator = blend_int(1 * fixed_scale, collider_data.direction.i[i_axis], is_zero);
+				//__int64 denominator = blend_int(1 * fixed_scale, collider_data.direction.i[i_axis], is_zero);
+				__int64 denominator = is_zero? 1 * fixed_scale : collider_data.direction.i[i_axis];
 
 				__int64 t_enter = ((bounds[0] - position_local.i[i_axis]) * fixed_scale) / denominator;
 				__int64 t_exit = ((bounds[1] - position_local.i[i_axis]) * fixed_scale) / denominator;
@@ -378,13 +388,17 @@ void Collision_Routine_MOVING(
 				t_enter = max(t_enter, INT_MIN);
 				t_exit = min(t_exit, INT_MAX);
 
-				t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
-				t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				//t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
+				t_enter = is_zero ? (__int64)INT_MIN : t_enter;
+				//t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				t_exit = is_zero? (__int64)INT_MAX : t_exit;
 
 				bool is_not_valid = (t_exit < t_enter) || (t_enter > t_end) || (t_exit < t_begin);
 				bool is_valid = (t_enter > t_hit) && (!is_not_valid);
-				t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
-				i_axis_out = blend_int(i_axis, i_axis_out, is_valid);
+				//t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
+				t_hit = is_valid ? t_enter : t_hit;
+				//i_axis_out = blend_int(i_axis, i_axis_out, is_valid);
+				i_axis_out = is_valid? i_axis : i_axis_out;
 			}
 
 			if (t_hit > t_default) {
@@ -461,10 +475,13 @@ void Collision_Routine_STATIC(
 				bool is_zero = collider_data.direction.i[i_axis] == 0;
 
 				__int64 bounds[2];
-				bounds[0] = blend_int(extent.i[i_axis], -extent.i[i_axis], is_entering);
-				bounds[1] = blend_int(-extent.i[i_axis], extent.i[i_axis], is_entering);
+				//bounds[0] = blend_int(extent.i[i_axis], -extent.i[i_axis], is_entering);
+				bounds[0] = is_entering ? extent.i[i_axis] : -extent.i[i_axis];
+				//bounds[1] = blend_int(-extent.i[i_axis], extent.i[i_axis], is_entering);
+				bounds[1] = is_entering? -extent.i[i_axis] : extent.i[i_axis];
 
-				__int64 denominator = blend_int(1 * fixed_scale, collider_data.direction.i[i_axis], is_zero);
+				//__int64 denominator = blend_int(1 * fixed_scale, collider_data.direction.i[i_axis], is_zero);
+				__int64 denominator = is_zero? 1 * fixed_scale : collider_data.direction.i[i_axis];
 
 				__int64 t_enter = ((bounds[0] - position_local.i[i_axis]) * fixed_scale) / denominator;
 				__int64 t_exit = ((bounds[1] - position_local.i[i_axis]) * fixed_scale) / denominator;
@@ -472,13 +489,17 @@ void Collision_Routine_STATIC(
 				t_enter = max(t_enter, INT_MIN);
 				t_exit = min(t_exit, INT_MAX);
 
-				t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
-				t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				//t_enter = blend_int((__int64)INT_MIN, t_enter, (__int64)is_zero);
+				t_enter = is_zero ? (__int64)INT_MIN : t_enter;
+				//t_exit = blend_int((__int64)INT_MAX, t_exit, (__int64)is_zero);
+				t_exit = is_zero ? (__int64)INT_MAX : t_exit;
 
 				bool is_not_valid = (t_exit < t_enter) || (t_enter > t_end) || (t_exit < t_begin);
 				bool is_valid = (t_enter > t_hit) && (!is_not_valid);
-				t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
-				i_axis_out = blend_int(i_axis, i_axis_out, is_valid);
+				//t_hit = blend_int(t_enter, t_hit, (__int64)is_valid);
+				t_hit = is_valid ? t_enter : t_hit;;
+				//i_axis_out = blend_int(i_axis, i_axis_out, is_valid);
+				i_axis_out = is_valid ? i_axis : i_axis_out;
 			}
 
 			if (t_hit > t_default) {

@@ -104,7 +104,9 @@ void Write_Frame_Buffer(
 
 	const unsigned __int32 x_mask = 0x33333333;
 	const unsigned __int32 y_mask = ~x_mask;
-	const unsigned __int32 x_inc = y_mask | 0x1;
+	//const unsigned __int32 x_inc = y_mask | 0x1;
+	//const unsigned __int32 x_inc_4 = y_mask | 0x10;
+	const unsigned __int32 x_inc_8 = y_mask | 0x20;
 	const unsigned __int32 y_inc = x_mask | 0x4;
 
 	__int32 i_tile = 0;
@@ -112,21 +114,29 @@ void Write_Frame_Buffer(
 	for (__int32 y_tile = 0; y_tile < display_::BIN_SIZE; y_tile += display_::TILE_SIZE) {
 		for (__int32 x_tile = 0; x_tile < display_::BIN_SIZE; x_tile += display_::TILE_SIZE) {
 
-			__int32 i_write_y = ((tile_origin.y + y_tile) * write_pitch) + (tile_origin.x + x_tile);
+			const unsigned __int32* read_src = display.colour_buffer_bin[i_thread] + i_tile;
+			unsigned __int32* write_y = write_buffer + ((tile_origin.y + y_tile) * write_pitch) + (tile_origin.x + x_tile);
 			__int32 y_morton = 0;
 
 			for (__int32 y_dest = 0; y_dest < display_::TILE_SIZE; y_dest++) {
 
 				__int32 x_morton = 0;
 
-				for (__int32 x_dest = 0; x_dest < display_::TILE_SIZE; x_dest++) {
+				for (__int32 x_dest = 0; x_dest < display_::TILE_SIZE; x_dest += 8) {
 
-					__int32 i_read = x_morton | y_morton;
-					write_buffer[i_write_y + x_dest] = display.colour_buffer_bin[i_thread][i_tile + i_read];
-					x_morton = (x_morton + x_inc) & x_mask;
+					__int32 i_read[2];
+					i_read[0] = x_morton | y_morton;
+					i_read[1] = (x_morton + 0x10) | y_morton;
+					__m128i read[2];
+					read[0] = load_u(read_src + i_read[0]);
+					read[1] = load_u(read_src + i_read[1]);
+					//write_buffer[i_write_y + x_dest + i] = display.colour_buffer_bin[i_thread][i_tile + i_read];
+					store_u(read[0], write_y + x_dest);
+					store_u(read[1], write_y + x_dest + 4);
+					x_morton = (x_morton + x_inc_8) & x_mask;
 				}
 				y_morton = (y_morton + y_inc) & y_mask;
-				i_write_y += write_pitch;
+				write_y += write_pitch;
 			}
 			i_tile += (display_::TILE_SIZE * display_::TILE_SIZE);
 		}
@@ -566,7 +576,72 @@ void systems_::render_::process_screen_bins(void* void_parameter, __int32 i_thre
 	);
 }
 
-static const unsigned __int32 alpha = (255 << 24) | (159 << 16) | (91 << 8) | (83 << 0);
+static const __int32 alpha = (255 << 24) | (159 << 16) | (91 << 8) | (83 << 0);
+
+/*
+==================
+==================
+*/
+void Write_UI_Element_X2(
+
+	const __int32 x,
+	const __int32 y,
+	const __int32 scale,
+	const texture_handler_& texture_handler,
+	display_& display
+
+) {
+	const __int32 i_mip_map = 0;
+	const __int32 write_pitch = display.locked_rect.Pitch / 4;
+	const __int32 write_pitch_2 = display.locked_rect.Pitch / 2;
+	//unsigned __int32* write_buffer = (unsigned __int32*)display.locked_rect.pBits;
+	unsigned __int32* dest_buffer = (unsigned __int32*)display.locked_rect.pBits + (y * write_pitch);
+
+	const __int32 width_src = texture_handler.width;
+	const __int32 height_src = texture_handler.height;
+	unsigned __int32* y_dest[2];
+	y_dest[0] = dest_buffer;
+	y_dest[1] = dest_buffer + write_pitch;
+
+	const __m128i alpha_4 = set_all(alpha);
+
+	for (__int32 y_source = 0; y_source < height_src * width_src; y_source += width_src) {
+
+		unsigned __int32* src_buffer = texture_handler.texture[i_mip_map] + y_source;
+		__int32 x_dest[2];
+		x_dest[0] = x;
+		x_dest[1] = x + 4;
+
+		for (__int32 x_source = 0; x_source < width_src; x_source += 4) {
+
+			__m128i src_colour = load_u(src_buffer + x_source);
+			__m128i temp_hi = _mm_unpackhi_epi32(src_colour, src_colour);
+			__m128i temp_lo = _mm_unpacklo_epi32(src_colour, src_colour);
+
+			__m128i dest_buffer[4];
+			dest_buffer[0] = load_u(y_dest[0] + x_dest[0]);
+			dest_buffer[1] = load_u(y_dest[0] + x_dest[1]);
+			dest_buffer[2] = load_u(y_dest[1] + x_dest[0]);
+			dest_buffer[3] = load_u(y_dest[1] + x_dest[1]);
+
+			__m128i dest_colour[4];
+			dest_colour[0] = blend(temp_lo, dest_buffer[0], temp_lo != alpha_4);
+			dest_colour[1] = blend(temp_hi, dest_buffer[1], temp_hi != alpha_4);
+			dest_colour[2] = blend(temp_lo, dest_buffer[2], temp_lo != alpha_4);
+			dest_colour[3] = blend(temp_hi, dest_buffer[3], temp_hi != alpha_4);
+
+			store_u(dest_colour[0], y_dest[0] + x_dest[0]);
+			store_u(dest_colour[1], y_dest[0] + x_dest[1]);
+			store_u(dest_colour[2], y_dest[1] + x_dest[0]);
+			store_u(dest_colour[3], y_dest[1] + x_dest[1]);
+
+			x_dest[0] += 8;
+			x_dest[1] += 8;
+		}
+		y_dest[0] += write_pitch_2;
+		y_dest[1] += write_pitch_2;
+	}
+}
 
 
 /*
@@ -584,27 +659,34 @@ void Write_UI_Element(
 ) {
 	const __int32 i_mip_map = 0;
 	const __int32 write_pitch = display.locked_rect.Pitch / 4;
-	unsigned __int32* write_buffer = (unsigned __int32*)display.locked_rect.pBits;
+	//unsigned __int32* write_buffer = (unsigned __int32*)display.locked_rect.pBits;
 
-	const __int32 width_src = texture_handler.width * scale;
-	const __int32 height_src = texture_handler.height * scale;
-	__int32 y_dest = (y * write_pitch);
+	const __int32 width_src = texture_handler.width;
+	const __int32 height_src = texture_handler.height;
+	unsigned __int32* dest_buffer = (unsigned __int32*)display.locked_rect.pBits + (y * write_pitch);
 
-	for (__int32 y_source = 0; y_source < height_src; y_source++) {
+	const __m128i alpha_4 = set_all(alpha);
 
+	for (__int32 y_source = 0; y_source < height_src * width_src; y_source += width_src) {
+
+		unsigned __int32* src_buffer = texture_handler.texture[i_mip_map] + y_source;
 		__int32 x_dest = x;
 
-		for (__int32 x_source = 0; x_source < width_src; x_source++) {
+		for (__int32 x_source = 0; x_source < width_src; x_source += 8) {
 
-			__int32 x_read = x_source / scale;
-			__int32 y_read = y_source / scale;
-			unsigned __int32 srce_colour = texture_handler.texture[i_mip_map][(y_read * texture_handler.width) + x_read];
-			unsigned __int32 dest_colour = write_buffer[y_dest + x_dest];
-			bool is_transparent = srce_colour == alpha;
-			write_buffer[y_dest + x_dest] = is_transparent ? dest_colour : srce_colour;
-			x_dest++;
+			__m128i src_colour[2]; 
+			src_colour[0] = load_u(src_buffer + x_source);
+			src_colour[1] = load_u(src_buffer + x_source + 4);
+			__m128i dest_colour[2]; 
+			dest_colour[0] = load_u(dest_buffer + x_dest);
+			dest_colour[1] = load_u(dest_buffer + x_dest + 4);
+			dest_colour[0] = blend(src_colour[0], dest_colour[0], src_colour[0] != alpha_4);
+			dest_colour[1] = blend(src_colour[1], dest_colour[1], src_colour[1] != alpha_4);
+			store_u(dest_colour[0], dest_buffer + x_dest);
+			store_u(dest_colour[1], dest_buffer + x_dest + 4);
+			x_dest += 8;
 		}
-		y_dest += write_pitch;
+		dest_buffer += write_pitch;
 	}
 }
 
@@ -676,7 +758,7 @@ void systems_::render_::render_UI(void* void_parameter, __int32 i_thread) {
 		__int32 y_offset = 690;
 		__int32 scale = 2;
 
-		Write_UI_Element(
+		Write_UI_Element_X2(
 
 			x_offset,
 			y_offset,
@@ -699,7 +781,7 @@ void systems_::render_::render_UI(void* void_parameter, __int32 i_thread) {
 			__int32 index = radix[i_element];
 			__int32 scale = 2;
 
-			Write_UI_Element(
+			Write_UI_Element_X2(
 
 				x_offset,
 				y_offset,

@@ -1553,8 +1553,10 @@ void COMPONENT_Populate_Table(
 			__int32 i_axis_out = X;
 			for (__int32 i_axis = X; i_axis < W; i_axis++) {
 				bool is_greater = extent.i[i_axis] > max_side;
-				max_side = blend_int(extent.i[i_axis], max_side, is_greater);
-				i_axis_out = blend_int(i_axis, i_axis_out, is_greater);
+				//max_side = blend_int(extent.i[i_axis], max_side, is_greater);
+				max_side = is_greater ? extent.i[i_axis] : max_side;
+				//i_axis_out = blend_int(i_axis, i_axis_out, is_greater);
+				i_axis_out = is_greater ? i_axis : i_axis_out;
 			}
 
 			for (__int32 i_group = 0; i_group < component_data_::NUM_MASKS; i_group++) {
