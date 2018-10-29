@@ -643,9 +643,6 @@ void systems_::render_::render_UI(void* void_parameter, __int32 i_thread) {
 	const __int32 i_read = parameters->command_buffer_handler->i_read;
 	const command_buffer_& command_buffer = parameters->command_buffer_handler->command_buffers[i_read];
 
-
-
-
 	// ===========================================================================================
 	{
 		const __int32 n_elements = 3;

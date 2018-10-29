@@ -1194,7 +1194,6 @@ void systems_::entity_::update_power_effects(
 			texture_space[i_entity].q_add = power[i_entity].is_on ? power[i_entity].q_add_texture : power[i_entity].q_null;
 
 			//if (power[i_entity].is_on) {
-			//	printf_s("PENIS");
 			//	printf_s(" %f %f %f %f \n", colour_space[i_entity].q_add.x, colour_space[i_entity].q_add.y, colour_space[i_entity].q_add.z, colour_space[i_entity].q_add.w);
 			//}
 		}
