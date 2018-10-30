@@ -592,7 +592,7 @@ void systems_::monster_::fire_projectile(
 	fetch.component_ids[0] = component_id_::BASE;
 	fetch.component_ids[1] = component_id_::PROJECTILE;
 	fetch.component_ids[2] = component_id_::BEHAVIOUR;
-	fetch.component_ids[3] = component_id_::DRAW;
+	fetch.component_ids[3] = component_id_::MODEL;
 	fetch.component_ids[4] = component_id_::MODEL_SPACE;
 	fetch.component_ids[5] = component_id_::ANIMATION;
 	fetch.component_ids[6] = component_id_::COLOUR;
@@ -608,7 +608,7 @@ void systems_::monster_::fire_projectile(
 		component_::base_* base = (component_::base_*)fetch.table[0][i_archetype_index];
 		component_::projectile_* projectile = (component_::projectile_*)fetch.table[1][i_archetype_index];
 		component_::behaviour_* behaviour = (component_::behaviour_*)fetch.table[2][i_archetype_index];
-		component_::draw_* draw = (component_::draw_*)fetch.table[3][i_archetype_index];
+		component_::model_* model_component = (component_::model_*)fetch.table[3][i_archetype_index];
 		component_::model_space_* model_space = (component_::model_space_*)fetch.table[4][i_archetype_index];
 		component_::animation_* animation = (component_::animation_*)fetch.table[5][i_archetype_index];
 		component_::colour_* colour = (component_::colour_*)fetch.table[6][i_archetype_index];
@@ -617,7 +617,7 @@ void systems_::monster_::fire_projectile(
 
 			if (!Match_Entity_Mask(i_entity, fetch.component_masks, archetype)) { continue; };
 
-			const model_& model = model_manager.model[draw[i_entity].model_id];
+			const model_& model = model_manager.model[model_component[i_entity].id];
 
 			m_scale[X].x = base[i_entity].scale.x;
 			m_scale[Y].y = base[i_entity].scale.y;

@@ -66,6 +66,7 @@ struct component_id_ {
 		PROP,
 		MOB,
 		MAP_BVH,
+		MODEL,
 
 		COUNT,
 	};
@@ -132,6 +133,7 @@ struct component_ {
 	struct prop_;
 	struct mob_;
 	struct map_bvh_;
+	struct model_;
 };
 
 struct component_::small_model_id_ {
@@ -268,7 +270,7 @@ struct component_::colour_space_ {
 struct component_::draw_ {
 
 	__int32 draw_id;
-	__int32 model_id;
+	//__int32 model_id;
 };
 struct component_::model_space_ {
 
@@ -609,6 +611,10 @@ struct component_::map_bvh_ {
 	__int32 n_models;
 	int3_ extent;
 };
+struct component_::model_ {
+
+	__int32 id;
+};
 
 
 struct component_fetch_ {
@@ -718,6 +724,7 @@ struct component_data_ {
 		sizeof(component_::prop_),
 		sizeof(component_::mob_),
 		sizeof(component_::map_bvh_),
+		sizeof(component_::model_),
 
 	};
 

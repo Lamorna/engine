@@ -570,14 +570,36 @@ void Load_Quake_Model(
 	// animation origin offset
 	// ----------------------------------------------------------------------------------------------------------
 	{
-		const __int32 n_vertices = model.n_vertices;
-		float3_ centre;
-		float3_ extent;
+		{
+			const __int32 n_vertices = model.n_vertices;
+			const __int32 i_frame = 0;
+			float3_ centre;
+			float3_ extent;
 
-		Model_Centre_Extent(model.vertices_frame[0], n_vertices, centre, extent);
+			Model_Centre_Extent(model.vertices_frame[i_frame], n_vertices, centre, extent);
 
-		model.bounding_origin = centre; // +quake_model.translate;
-		model.bounding_extent = extent;
+			model.bounding_origin = centre; // +quake_model.translate;
+			model.bounding_extent = extent;
+		}
+		{
+			const __int32 n_vertices = model.n_vertices;
+			float3_ final_extent = { 0.0f, 0.0f, 0.0f };
+
+			for (__int32 i_frame = 0; i_frame < model.n_frames; i_frame++) {
+
+				float3_ centre;
+				float3_ extent;
+
+				Model_Centre_Extent(model.vertices_frame[i_frame], n_vertices, centre, extent);
+
+				final_extent.x = max(final_extent.x, extent.x);
+				final_extent.y = max(final_extent.y, extent.y);
+				final_extent.z = max(final_extent.z, extent.z);
+			}
+
+			model.max_horizontal = max(final_extent.x, final_extent.z);
+			model.max_vertical = final_extent.y;
+		}
 	}
 
 	delete quake_mdl;

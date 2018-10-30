@@ -111,6 +111,7 @@ void COMPONENT_Populate_Table(
 			component_id_::MODEL_SPACE,
 			component_id_::MODEL_SPACE_UPDATE,
 			component_id_::BOUNDING_BOX,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -167,6 +168,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::MODEL_SPACE;
 		component_fetch.component_ids[n_entries++] = component_id_::MODEL_SPACE_UPDATE;
 		component_fetch.component_ids[n_entries++] = component_id_::BOUNDING_BOX;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -180,6 +182,7 @@ void COMPONENT_Populate_Table(
 		component_::model_space_* model_space = (component_::model_space_*)component_fetch.table[n_entries++][0];
 		component_::model_space_update_* model_space_update = (component_::model_space_update_*)component_fetch.table[n_entries++][0];
 		component_::bounding_box_* bounding_box = (component_::bounding_box_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 
 		for (__int32 i_model = 0; i_model < n_models; i_model++) {
@@ -227,8 +230,10 @@ void COMPONENT_Populate_Table(
 			bounding_box[i_model].extent.y = __int32(model.bounding_extent.y * fixed_scale_real);
 			bounding_box[i_model].extent.z = __int32(model.bounding_extent.z * fixed_scale_real);
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -257,6 +262,7 @@ void COMPONENT_Populate_Table(
 			component_id_::MODEL_SPACE_UPDATE,
 			component_id_::BOUNDING_BOX,
 			component_id_::PROP,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -292,6 +298,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::MODEL_SPACE_UPDATE;
 		component_fetch.component_ids[n_entries++] = component_id_::BOUNDING_BOX;
 		component_fetch.component_ids[n_entries++] = component_id_::PROP;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -303,6 +310,7 @@ void COMPONENT_Populate_Table(
 		component_::model_space_update_* model_space_update = (component_::model_space_update_*)component_fetch.table[n_entries++][0];
 		component_::bounding_box_* bounding_box = (component_::bounding_box_*)component_fetch.table[n_entries++][0];
 		component_::prop_* prop = (component_::prop_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 
 		const __int32 model_ids[] = {
@@ -341,14 +349,16 @@ void COMPONENT_Populate_Table(
 			model_space_update[i_model].q_rotate = q_unit;
 
 			bounding_box[i_model].centre = model_token.centre[i_model];
-			bounding_box[i_model].extent.x = __int32(model.bounding_extent.x * fixed_scale_real);
-			bounding_box[i_model].extent.y = __int32(model.bounding_extent.y * fixed_scale_real);
-			bounding_box[i_model].extent.z = __int32(model.bounding_extent.z * fixed_scale_real);
+			bounding_box[i_model].extent.x = __int32(model.max_horizontal * fixed_scale_real);
+			bounding_box[i_model].extent.y = __int32(model.max_vertical * fixed_scale_real);
+			bounding_box[i_model].extent.z = __int32(model.max_horizontal * fixed_scale_real);
 
 			prop[i_model].id = 0;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -385,6 +395,7 @@ void COMPONENT_Populate_Table(
 			component_id_::TEXTURE_BLEND,
 			component_id_::MASS,
 			component_id_::MOB,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -428,6 +439,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::TEXTURE_BLEND;
 		component_fetch.component_ids[n_entries++] = component_id_::MASS;
 		component_fetch.component_ids[n_entries++] = component_id_::MOB;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -447,6 +459,7 @@ void COMPONENT_Populate_Table(
 		component_::texture_blend_* texture_blend = (component_::texture_blend_*)component_fetch.table[n_entries++][0];
 		component_::mass_* mass = (component_::mass_*)component_fetch.table[n_entries++][0];
 		component_::mob_* mob = (component_::mob_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 
 		const __int32 model_ids[] = {
@@ -489,9 +502,9 @@ void COMPONENT_Populate_Table(
 			model_space_update[i_model].q_rotate = q_unit;
 
 			bounding_box[i_model].centre = model_token.centre[i_model];
-			bounding_box[i_model].extent.x = __int32(model.bounding_extent.x * fixed_scale_real);
-			bounding_box[i_model].extent.y = __int32(model.bounding_extent.y * fixed_scale_real);
-			bounding_box[i_model].extent.z = __int32(model.bounding_extent.z * fixed_scale_real);
+			bounding_box[i_model].extent.x = __int32(model.max_horizontal * fixed_scale_real);
+			bounding_box[i_model].extent.y = __int32(model.max_vertical * fixed_scale_real);
+			bounding_box[i_model].extent.z = __int32(model.max_horizontal * fixed_scale_real);
 
 			collider[i_model].extent.x = __int32(model.bounding_extent.x * 0.5f * fixed_scale_real);
 			collider[i_model].extent.y = __int32(model.bounding_extent.y * 1.0f * fixed_scale_real);
@@ -560,8 +573,10 @@ void COMPONENT_Populate_Table(
 
 			mob[i_model].id = 0;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 		}
 
 		//draw_call_& draw_call = draw_calls[draw_id];
@@ -590,6 +605,7 @@ void COMPONENT_Populate_Table(
 			component_id_::COLOUR,
 			component_id_::CLOUD,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -634,6 +650,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::CLOUD;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -643,6 +660,7 @@ void COMPONENT_Populate_Table(
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::cloud_* cloud = (component_::cloud_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -681,8 +699,10 @@ void COMPONENT_Populate_Table(
 
 				small_model_id[n_models].id = n_models;
 
+				model_component[n_models].id = model_::id_::CLOUD;
+
 				draw[n_models].draw_id = draw_id;
-				draw[n_models].model_id = model_::id_::CLOUD;
+				//draw[n_models].model_id = model_::id_::CLOUD;
 
 				n_models++;
 			}
@@ -719,6 +739,7 @@ void COMPONENT_Populate_Table(
 			component_id_::COLOUR,
 			component_id_::LAVA,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -775,6 +796,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::LAVA;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -784,6 +806,7 @@ void COMPONENT_Populate_Table(
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::lava_* lava = (component_::lava_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -821,8 +844,10 @@ void COMPONENT_Populate_Table(
 
 				small_model_id[n_models].id = n_models;
 
+				model_component[n_models].id = model_::id_::LAVA;
+
 				draw[n_models].draw_id = draw_id;
-				draw[n_models].model_id = model_::id_::LAVA;
+				//draw[n_models].model_id = model_::id_::LAVA;
 
 				n_models++;
 			}
@@ -854,6 +879,7 @@ void COMPONENT_Populate_Table(
 			component_id_::BASE,
 			component_id_::COLOUR,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			//component_id_::DRAW,
 
 		};
@@ -895,6 +921,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::BASE;
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		//component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -903,7 +930,8 @@ void COMPONENT_Populate_Table(
 		component_::base_* base = (component_::base_*)component_fetch.table[n_entries++][0];
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
-		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
+		//component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 
 		const __int32 i_model = 0;
 
@@ -919,6 +947,8 @@ void COMPONENT_Populate_Table(
 		colour[i_model].colour = model_colour;
 
 		small_model_id[i_model].id = i_model;
+
+		model_component[i_model].id = model_::id_::SKY_BOX;
 
 		//draw[i_model].draw_id = draw_id;
 		//draw[i_model].model_id = model_::id_::SKY_BOX;
@@ -948,6 +978,7 @@ void COMPONENT_Populate_Table(
 			component_id_::SOUND_TRIGGER,
 			component_id_::COLLIDEE_STATIC,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -993,6 +1024,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::SOUND_TRIGGER;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_STATIC;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1005,6 +1037,7 @@ void COMPONENT_Populate_Table(
 		component_::sound_trigger_* sound_trigger = (component_::sound_trigger_*)component_fetch.table[n_entries++][0];
 		component_::collidee_static_* collidee_static = (component_::collidee_static_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1044,8 +1077,10 @@ void COMPONENT_Populate_Table(
 
 			small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_::id_::DOOR;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::DOOR;
+			//draw[i_model].model_id = model_::id_::DOOR;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1079,6 +1114,7 @@ void COMPONENT_Populate_Table(
 			component_id_::TRAP_DOOR_ID,
 			component_id_::COLLIDEE_STATIC,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -1116,6 +1152,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::TRAP_DOOR_ID;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_STATIC;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1126,6 +1163,7 @@ void COMPONENT_Populate_Table(
 		component_::trap_door_id_* trap_door_id = (component_::trap_door_id_*)component_fetch.table[n_entries++][0];
 		component_::collidee_static_* collidee_static = (component_::collidee_static_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1150,8 +1188,10 @@ void COMPONENT_Populate_Table(
 
 			small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_::id_::CUBE;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::CUBE;
+			//draw[i_model].model_id = model_::id_::CUBE;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1186,6 +1226,7 @@ void COMPONENT_Populate_Table(
 			component_id_::TEXTURE_SPACE,
 			component_id_::SMALL_MODEL_ID,
 			component_id_::COLLIDEE_STATIC,
+			component_id_::MODEL,
 			component_id_::DRAW,
 		};
 
@@ -1221,6 +1262,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::TEXTURE_SPACE;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_STATIC;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1232,6 +1274,7 @@ void COMPONENT_Populate_Table(
 		component_::texture_space_* texture_space = (component_::texture_space_*)component_fetch.table[n_entries++][0];
 		component_::collidee_static_* collidee_static = (component_::collidee_static_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1270,8 +1313,10 @@ void COMPONENT_Populate_Table(
 
 			small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1309,6 +1354,7 @@ void COMPONENT_Populate_Table(
 			component_id_::TEXTURE_SPACE,
 			component_id_::COLLIDEE_ROTATED,
 			component_id_::POWER,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -1349,6 +1395,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::TEXTURE_SPACE;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_ROTATED;
 		component_fetch.component_ids[n_entries++] = component_id_::POWER;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1361,6 +1408,7 @@ void COMPONENT_Populate_Table(
 		component_::texture_space_* texture_space = (component_::texture_space_*)component_fetch.table[n_entries++][0];
 		component_::collidee_rotated_* collidee_rotated = (component_::collidee_rotated_*)component_fetch.table[n_entries++][0];
 		component_::power_* power = (component_::power_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1435,8 +1483,10 @@ void COMPONENT_Populate_Table(
 				collidee_rotated[i_model].normals[Z].i[i_axis] = __int32(model_token.normals[i_model_token][i_normal.z].f[i_axis] * fixed_scale_real);
 			}
 
+			model_component[i_model].id = model_::id_::BOUNCE_PAD;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::BOUNCE_PAD;
+			//draw[i_model].model_id = model_::id_::BOUNCE_PAD;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1476,6 +1526,7 @@ void COMPONENT_Populate_Table(
 			component_id_::COLLIDEE_MOVING,
 			component_id_::SMALL_MODEL_ID,
 			component_id_::TEXTURE_BLEND,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -1518,6 +1569,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_MOVING;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
 		component_fetch.component_ids[n_entries++] = component_id_::TEXTURE_BLEND;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1532,6 +1584,7 @@ void COMPONENT_Populate_Table(
 		component_::collidee_moving_* collidee_moving = (component_::collidee_moving_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
 		component_::texture_blend_* texture_blend = (component_::texture_blend_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1608,8 +1661,10 @@ void COMPONENT_Populate_Table(
 
 			texture_blend[i_model].interval = 0.0f;
 
+			model_component[i_model].id = model_::id_::PLATFORM;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::PLATFORM;
+			//draw[i_model].model_id = model_::id_::PLATFORM;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1669,6 +1724,7 @@ void COMPONENT_Populate_Table(
 			component_id_::SOUND_TRIGGER,
 			component_id_::COLLIDEE_STATIC,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -1712,6 +1768,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::SOUND_TRIGGER;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_STATIC;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1725,6 +1782,7 @@ void COMPONENT_Populate_Table(
 		component_::sound_trigger_* sound_trigger = (component_::sound_trigger_*)component_fetch.table[n_entries++][0];
 		component_::collidee_static_* collidee_static = (component_::collidee_static_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1787,8 +1845,10 @@ void COMPONENT_Populate_Table(
 
 			small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_::id_::PLATE;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::PLATE;
+			//draw[i_model].model_id = model_::id_::PLATE;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -1826,6 +1886,7 @@ void COMPONENT_Populate_Table(
 			component_id_::SOUND_TRIGGER,
 			component_id_::COLLIDEE_STATIC,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -1864,6 +1925,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::SOUND_TRIGGER;
 		component_fetch.component_ids[n_entries++] = component_id_::COLLIDEE_STATIC;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -1876,6 +1938,7 @@ void COMPONENT_Populate_Table(
 		component_::sound_trigger_* sound_trigger = (component_::sound_trigger_*)component_fetch.table[n_entries++][0];
 		component_::collidee_static_* collidee_static = (component_::collidee_static_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -1934,8 +1997,10 @@ void COMPONENT_Populate_Table(
 
 			small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_::id_::BUTTON;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_::id_::BUTTON;
+			//draw[i_model].model_id = model_::id_::BUTTON;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -2121,6 +2186,7 @@ void COMPONENT_Populate_Table(
 			component_id_::COLOUR,
 			component_id_::MAP_RENDER,
 			component_id_::BOUNDING_BOX,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -2154,6 +2220,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::MAP_RENDER;
 		component_fetch.component_ids[n_entries++] = component_id_::BOUNDING_BOX;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -2163,6 +2230,7 @@ void COMPONENT_Populate_Table(
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::map_render_* map_render = (component_::map_render_*)component_fetch.table[n_entries++][0];
 		component_::bounding_box_* bounding_box = (component_::bounding_box_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -2188,8 +2256,11 @@ void COMPONENT_Populate_Table(
 
 			const __int32 draw_id = draw_call_::id_::MAP + i_node;
 			const __int32 model_id = model_::id_::MAP + i_node;
+
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 			draw_call_& draw_call = draw_calls[draw_id];
 
 			model_& model = model_animate[model_id];
@@ -2261,6 +2332,7 @@ void COMPONENT_Populate_Table(
 			component_id_::LIGHTMAP_LIGHT_SOURCE,
 			component_id_::COLOUR,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -2302,6 +2374,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::LIGHTMAP_LIGHT_SOURCE;
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -2315,6 +2388,7 @@ void COMPONENT_Populate_Table(
 		component_::lightmap_light_source_* lightmap_light_source = (component_::lightmap_light_source_*)component_fetch.table[n_entries++][0];
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -2364,8 +2438,10 @@ void COMPONENT_Populate_Table(
 
 				small_model_id[n_models].id = n_models;
 
+				model_component[n_models].id = model_::id_::CUBE;
+
 				draw[n_models].draw_id = draw_id;
-				draw[n_models].model_id = model_::id_::CUBE;
+				//draw[n_models].model_id = model_::id_::CUBE;
 
 				n_models++;
 			}
@@ -2408,6 +2484,7 @@ void COMPONENT_Populate_Table(
 			component_id_::VERTEX_LIGHT_SOURCE,
 			component_id_::LIGHTMAP_LIGHT_SOURCE,
 			//component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -2450,6 +2527,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::VERTEX_LIGHT_SOURCE;
 		component_fetch.component_ids[n_entries++] = component_id_::LIGHTMAP_LIGHT_SOURCE;
 		//component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -2463,6 +2541,7 @@ void COMPONENT_Populate_Table(
 		component_::vertex_light_source_* vertex_light_source = (component_::vertex_light_source_*)component_fetch.table[n_entries++][0];
 		component_::lightmap_light_source_* lightmap_light_source = (component_::lightmap_light_source_*)component_fetch.table[n_entries++][0];
 		//component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -2509,8 +2588,10 @@ void COMPONENT_Populate_Table(
 
 			//small_model_id[i_model].id = i_model;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 
 		}
 
@@ -2557,6 +2638,7 @@ void COMPONENT_Populate_Table(
 			component_id_::BOUNDING_BOX,
 			component_id_::SOUND_TRIGGER,
 			component_id_::MASS,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -2612,6 +2694,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::BOUNDING_BOX;
 		component_fetch.component_ids[n_entries++] = component_id_::SOUND_TRIGGER;
 		component_fetch.component_ids[n_entries++] = component_id_::MASS;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -2632,6 +2715,7 @@ void COMPONENT_Populate_Table(
 		component_::bounding_box_* bounding_box = (component_::bounding_box_*)component_fetch.table[n_entries++][0];
 		component_::sound_trigger_* sound_trigger = (component_::sound_trigger_*)component_fetch.table[n_entries++][0];
 		component_::mass_* mass = (component_::mass_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -2750,8 +2834,10 @@ void COMPONENT_Populate_Table(
 			mass[i_model].default_value = 8.0f;
 			mass[i_model].value = 8.0f;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 		}
 
 		draw_call_& draw_call = draw_calls[draw_id];
@@ -2798,6 +2884,7 @@ void COMPONENT_Populate_Table(
 			component_id_::SOUND_TRIGGER,
 			component_id_::MASS,
 			component_id_::HEALTH,
+			component_id_::MODEL,
 			component_id_::DRAW,
 
 		};
@@ -2847,6 +2934,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::SOUND_TRIGGER;
 		component_fetch.component_ids[n_entries++] = component_id_::MASS;
 		component_fetch.component_ids[n_entries++] = component_id_::HEALTH;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -2869,6 +2957,7 @@ void COMPONENT_Populate_Table(
 		component_::sound_trigger_* sound_trigger = (component_::sound_trigger_*)component_fetch.table[n_entries++][0];
 		component_::mass_* mass = (component_::mass_*)component_fetch.table[n_entries++][0];
 		component_::health_* health = (component_::health_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -2952,9 +3041,12 @@ void COMPONENT_Populate_Table(
 			collidee_static[i_model].entity_id = i_monster;
 
 			bounding_box[i_model].centre = model_token.centre[i_model_token];
-			bounding_box[i_model].extent.x = __int32(model.bounding_extent.x * fixed_scale_real);
-			bounding_box[i_model].extent.y = __int32(model.bounding_extent.y * fixed_scale_real);
-			bounding_box[i_model].extent.z = __int32(model.bounding_extent.z * fixed_scale_real);
+			//bounding_box[i_model].extent.x = __int32(model.bounding_extent.x * fixed_scale_real);
+			//bounding_box[i_model].extent.y = __int32(model.bounding_extent.y * fixed_scale_real);
+			//bounding_box[i_model].extent.z = __int32(model.bounding_extent.z * fixed_scale_real);
+			bounding_box[i_model].extent.x = __int32(model.max_horizontal * fixed_scale_real);
+			bounding_box[i_model].extent.y = __int32(model.max_vertical * fixed_scale_real);
+			bounding_box[i_model].extent.z = __int32(model.max_horizontal * fixed_scale_real);
 
 
 			colour[i_model].colour = colours[i_model % n_colours];
@@ -3057,8 +3149,10 @@ void COMPONENT_Populate_Table(
 
 			health[i_model].hp = 6;
 
+			model_component[i_model].id = model_id;
+
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 
 			i_monster++;
 		}
@@ -3092,6 +3186,7 @@ void COMPONENT_Populate_Table(
 			component_id_::COLOUR,
 			component_id_::PATROL_POINT,
 			component_id_::SMALL_MODEL_ID,
+			component_id_::MODEL,
 			//component_id_::DRAW,
 
 		};
@@ -3133,6 +3228,7 @@ void COMPONENT_Populate_Table(
 		component_fetch.component_ids[n_entries++] = component_id_::COLOUR;
 		component_fetch.component_ids[n_entries++] = component_id_::PATROL_POINT;
 		component_fetch.component_ids[n_entries++] = component_id_::SMALL_MODEL_ID;
+		component_fetch.component_ids[n_entries++] = component_id_::MODEL;
 		//component_fetch.component_ids[n_entries++] = component_id_::DRAW;
 
 		Populate_Fetch_Table(archetype_data, component_fetch);
@@ -3142,6 +3238,7 @@ void COMPONENT_Populate_Table(
 		component_::colour_* colour = (component_::colour_*)component_fetch.table[n_entries++][0];
 		component_::patrol_point_* patrol_point = (component_::patrol_point_*)component_fetch.table[n_entries++][0];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[n_entries++][0];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[n_entries++][0];
 		//component_::draw_* draw = (component_::draw_*)component_fetch.table[n_entries++][0];
 		// -----------------------------------------------------------------------------------
 
@@ -3167,6 +3264,8 @@ void COMPONENT_Populate_Table(
 				patrol_point[i_model].id = i_model;
 
 				small_model_id[i_model].id = i_model;
+
+				model_component[i_model].id = model_id;
 
 				//draw[i_model].draw_id = draw_id;
 				//draw[i_model].model_id = model_id;
@@ -3433,7 +3532,7 @@ void COMPONENT_Populate_Table(
 			sound_trigger[i_model].source_id = sound_triggers_::source_id_::MONSTER + i_monster;
 
 			draw[i_model].draw_id = draw_id;
-			draw[i_model].model_id = model_id;
+			//draw[i_model].model_id = model_id;
 
 			i_monster++;
 		}

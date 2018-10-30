@@ -968,7 +968,7 @@ void systems_::sound_::monster_triggers(
 			sound_triggers.i_wavs[sound_triggers.n_triggers] = sound_id_::SHAMBLER_CHARGE;
 			sound_triggers.source_ids[sound_triggers.n_triggers] = sound_trigger[i_entity].source_id;
 			sound_triggers.positions[sound_triggers.n_triggers] = base[i_entity].position_fixed;
-			sound_triggers.n_triggers += behaviour[i_entity].state_trigger == component_::behaviour_::id_::CHARGE_PLAYER;
+			sound_triggers.n_triggers += behaviour[i_entity].state_trigger == component_::behaviour_::id_::ATTACK;
 		}
 	}
 }

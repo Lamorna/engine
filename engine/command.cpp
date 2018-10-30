@@ -292,12 +292,13 @@ void systems_::command_::write_animated(
 	draw_call_* draw_calls = command_buffer.draw_calls;
 
 	component_fetch_ component_fetch;
-	component_fetch.n_components = 4;
+	component_fetch.n_components = 5;
 	component_fetch.n_excludes = 0;
 	component_fetch.component_ids[0] = component_id_::BASE;
 	component_fetch.component_ids[1] = component_id_::MODEL_SPACE;
 	component_fetch.component_ids[2] = component_id_::ANIMATION;
-	component_fetch.component_ids[3] = component_id_::DRAW;
+	component_fetch.component_ids[3] = component_id_::MODEL;
+	component_fetch.component_ids[4] = component_id_::DRAW;
 
 	Populate_Fetch_Table(archetype_data, component_fetch);
 
@@ -310,7 +311,8 @@ void systems_::command_::write_animated(
 		component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
 		component_::model_space_* model_space = (component_::model_space_*)component_fetch.table[1][i_archetype_index];
 		component_::animation_* animation = (component_::animation_*)component_fetch.table[2][i_archetype_index];
-		component_::draw_* draw = (component_::draw_*)component_fetch.table[3][i_archetype_index];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[3][i_archetype_index];
+		component_::draw_* draw = (component_::draw_*)component_fetch.table[4][i_archetype_index];
 
 		for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
 
@@ -330,7 +332,7 @@ void systems_::command_::write_animated(
 			draw_call.animation_data[n_models].i_frames[1] = animation[i_entity].i_frames[1];
 			draw_call.animation_data[n_models].frame_interval = animation[i_entity].frame_interval;
 			draw_call.animation_data[n_models].origin = animation[i_entity].origin;
-			draw_call.model_id[n_models] = draw[i_entity].model_id;
+			draw_call.model_id[n_models] = model_component[i_entity].id;
 
 			n_models++;
 		}
@@ -354,10 +356,11 @@ void systems_::command_::write_model_space(
 	draw_call_* draw_calls = command_buffer.draw_calls;
 
 	component_fetch_ component_fetch;
-	component_fetch.n_components = 3;
+	component_fetch.n_components = 4;
 	component_fetch.component_ids[0] = component_id_::BASE;
 	component_fetch.component_ids[1] = component_id_::MODEL_SPACE;
-	component_fetch.component_ids[2] = component_id_::DRAW;
+	component_fetch.component_ids[2] = component_id_::MODEL;
+	component_fetch.component_ids[3] = component_id_::DRAW;
 	component_fetch.n_excludes = 1;
 	component_fetch.exclude_ids[0] = component_id_::ANIMATION;
 
@@ -371,7 +374,8 @@ void systems_::command_::write_model_space(
 
 		component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
 		component_::model_space_* model_space = (component_::model_space_*)component_fetch.table[1][i_archetype_index];
-		component_::draw_* draw = (component_::draw_*)component_fetch.table[2][i_archetype_index];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[2][i_archetype_index];
+		component_::draw_* draw = (component_::draw_*)component_fetch.table[3][i_archetype_index];
 
 		for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
 
@@ -387,7 +391,7 @@ void systems_::command_::write_model_space(
 			draw_call.m_rotate[n_models][Y] = model_space[i_entity].m_rotate[Y];
 			draw_call.m_rotate[n_models][Z] = model_space[i_entity].m_rotate[Z];
 			draw_call.m_rotate[n_models][W] = model_space[i_entity].m_rotate[W];
-			draw_call.model_id[n_models] = draw[i_entity].model_id;
+			draw_call.model_id[n_models] = model_component[i_entity].id;
 
 			n_models++;
 		}
@@ -411,9 +415,10 @@ void systems_::command_::write_static_model(
 	draw_call_* draw_calls = command_buffer.draw_calls;
 
 	component_fetch_ component_fetch;
-	component_fetch.n_components = 2;
+	component_fetch.n_components = 3;
 	component_fetch.component_ids[0] = component_id_::BASE;
-	component_fetch.component_ids[1] = component_id_::DRAW;
+	component_fetch.component_ids[1] = component_id_::MODEL;
+	component_fetch.component_ids[2] = component_id_::DRAW;
 	component_fetch.n_excludes = 3;
 	component_fetch.exclude_ids[0] = component_id_::SMALL_MODEL_ID;
 	component_fetch.exclude_ids[1] = component_id_::ANIMATION;
@@ -428,7 +433,8 @@ void systems_::command_::write_static_model(
 		const __int32 n_entities = archetype.n_entities;
 
 		component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
-		component_::draw_* draw = (component_::draw_*)component_fetch.table[1][i_archetype_index];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[1][i_archetype_index];
+		component_::draw_* draw = (component_::draw_*)component_fetch.table[2][i_archetype_index];
 
 		for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
 
@@ -440,7 +446,7 @@ void systems_::command_::write_static_model(
 
 			draw_call.position[n_models] = base[i_entity].position_fixed;
 			draw_call.scale[n_models] = base[i_entity].scale;
-			draw_call.model_id[n_models] = draw[i_entity].model_id;
+			draw_call.model_id[n_models] = model_component[i_entity].id;
 
 			n_models++;
 		}
@@ -463,11 +469,12 @@ void systems_::command_::write_small_model(
 	draw_call_* draw_calls = command_buffer.draw_calls;
 
 	component_fetch_ component_fetch;
-	component_fetch.n_components = 3;
+	component_fetch.n_components = 4;
 	component_fetch.n_excludes = 0;
 	component_fetch.component_ids[0] = component_id_::BASE;
 	component_fetch.component_ids[1] = component_id_::SMALL_MODEL_ID;
-	component_fetch.component_ids[2] = component_id_::DRAW;
+	component_fetch.component_ids[2] = component_id_::MODEL;
+	component_fetch.component_ids[3] = component_id_::DRAW;
 
 	Populate_Fetch_Table(archetype_data, component_fetch);
 
@@ -479,7 +486,8 @@ void systems_::command_::write_small_model(
 
 		component_::base_* base = (component_::base_*)component_fetch.table[0][i_archetype_index];
 		component_::small_model_id_* small_model_id = (component_::small_model_id_*)component_fetch.table[1][i_archetype_index];
-		component_::draw_* draw = (component_::draw_*)component_fetch.table[2][i_archetype_index];
+		component_::model_* model_component = (component_::model_*)component_fetch.table[2][i_archetype_index];
+		component_::draw_* draw = (component_::draw_*)component_fetch.table[3][i_archetype_index];
 
 		for (__int32 i_entity = 0; i_entity < n_entities; i_entity++) {
 
@@ -491,7 +499,7 @@ void systems_::command_::write_small_model(
 
 			draw_call.position[n_models] = base[i_entity].position_fixed;
 			draw_call.scale[n_models] = base[i_entity].scale;
-			draw_call.model_id[n_models] = draw[i_entity].model_id;
+			draw_call.model_id[n_models] = model_component[i_entity].id;
 
 			n_models++;
 		}

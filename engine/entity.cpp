@@ -819,6 +819,7 @@ void systems_::entity_::bbox_vs_view_volume(
 	component_fetch.component_ids[0] = component_id_::BASE;
 	component_fetch.component_ids[1] = component_id_::BOUNDING_BOX;
 	component_fetch.component_ids[2] = component_id_::DRAW;
+	//component_fetch.component_ids[3] = component_id_::PATROL;
 
 	Populate_Fetch_Table(archetype_data, component_fetch);
 
@@ -905,6 +906,8 @@ void systems_::entity_::bbox_vs_view_volume(
 
 				//printf_s("culled: %i \n", i_entity);
 			}
+			//printf_s("=========");
+
 		}
 	}
 

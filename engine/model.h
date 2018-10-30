@@ -162,6 +162,8 @@ struct model_ {
 	__int32* i_vertices;
 	__int32** i_textures;
 	char name[MAX_MODEL_NAME_CHARS];
+	float max_horizontal;
+	float max_vertical;
 	float3_ bounding_origin;
 	float3_ bounding_extent;
 	float3_ translate;
