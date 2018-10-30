@@ -79,33 +79,43 @@ void systems_::item_::update_ammo(
 
 			__int32 new_state = item[i_entity].state;
 			bool is_picked_up = item[i_entity].state == component_::item_::state_::PICKED_UP;
-			item[i_entity].timer += blend(timer.delta_time, 0.0f, is_picked_up);
+			//item[i_entity].timer += blend(timer.delta_time, 0.0f, is_picked_up);
+			item[i_entity].timer += is_picked_up ? timer.delta_time : 0.0f;
 
 			bool is_timer = item[i_entity].timer > item[i_entity].spawn_time;
-			new_state = blend_int(component_::item_::state_::SPAWNED, new_state, is_timer);
-			item[i_entity].timer = blend(0.0f, item[i_entity].timer, is_timer);
+			//new_state = blend_int(component_::item_::state_::SPAWNED, new_state, is_timer);
+			new_state = is_timer ? component_::item_::state_::SPAWNED : new_state;
+			//item[i_entity].timer = blend(0.0f, item[i_entity].timer, is_timer);
+			item[i_entity].timer = is_timer ? 0.0f : item[i_entity].timer;
 
-			new_state = blend_int(component_::item_::state_::PICKED_UP, new_state, trigger[i_entity].is_triggered);
+			//new_state = blend_int(component_::item_::state_::PICKED_UP, new_state, trigger[i_entity].is_triggered);
+			new_state = trigger[i_entity].is_triggered ? component_::item_::state_::PICKED_UP : new_state;
 
 			bool is_spawned = new_state == component_::item_::state_::SPAWNED;
 
 			for (__int32 i = X; i < W; i++) {
 
-				base[i_entity].position_fixed.i[i] = blend_int(item[i_entity].spawn_position.i[i], item[i_entity].despawn_position.i[i], is_spawned);
-				base[i_entity].scale.f[i] = blend(base[i_entity].scale.f[i], scale_start.f[i], is_spawned);
+				//base[i_entity].position_fixed.i[i] = blend_int(item[i_entity].spawn_position.i[i], item[i_entity].despawn_position.i[i], is_spawned);
+				base[i_entity].position_fixed.i[i] = is_spawned ? item[i_entity].spawn_position.i[i] : item[i_entity].despawn_position.i[i];
+				//base[i_entity].scale.f[i] = blend(base[i_entity].scale.f[i], scale_start.f[i], is_spawned);
+				base[i_entity].scale.f[i] = is_spawned ? base[i_entity].scale.f[i] : scale_start.f[i];
 				float delta_scale = scale_velocity.f[i] * timer.delta_time;
-				base[i_entity].scale.f[i] += blend(delta_scale, 0.0f, is_spawned);
+				//base[i_entity].scale.f[i] += blend(delta_scale, 0.0f, is_spawned);
+				base[i_entity].scale.f[i] += is_spawned ? delta_scale : 0.0f;
 				base[i_entity].scale.f[i] = min(base[i_entity].scale.f[i], item[i_entity].default_scale.f[i]);
 			}
 
 			bool is_state_change = new_state != item[i_entity].state;
-			item[i_entity].state_trigger = blend_int(new_state, component_::item_::state_::NULL_, is_state_change);
+			//item[i_entity].state_trigger = blend_int(new_state, component_::item_::state_::NULL_, is_state_change);
+			item[i_entity].state_trigger = is_state_change ? new_state : component_::item_::state_::NULL_;
 			item[i_entity].state = new_state;
 
 			for (__int32 i_axis = X; i_axis < W; i_axis++) {
-				colour_player[i_entity_camera].colour.f[i_axis] = blend(colour[i_entity].colour.f[i_axis], colour_player[i_entity_camera].colour.f[i_axis], trigger[i_entity].is_triggered);
+				//colour_player[i_entity_camera].colour.f[i_axis] = blend(colour[i_entity].colour.f[i_axis], colour_player[i_entity_camera].colour.f[i_axis], trigger[i_entity].is_triggered);
+				colour_player[i_entity_camera].colour.f[i_axis] = trigger[i_entity].is_triggered ? colour[i_entity].colour.f[i_axis] : colour_player[i_entity_camera].colour.f[i_axis];
 			}
-			weapon_player[i_entity_camera].projectile_id = blend_int(item[i_entity].id, weapon_player[i_entity_camera].projectile_id, trigger[i_entity].is_triggered);
+			//weapon_player[i_entity_camera].projectile_id = blend_int(item[i_entity].id, weapon_player[i_entity_camera].projectile_id, trigger[i_entity].is_triggered);
+			weapon_player[i_entity_camera].projectile_id = trigger[i_entity].is_triggered ? item[i_entity].id : weapon_player[i_entity_camera].projectile_id;
 			weapon_player[i_entity_camera].ammo_count += item[i_entity].state_trigger == component_::item_::state_::PICKED_UP ? component_::weapon_::ammo_::LOAD : 0;
 			weapon_player[i_entity_camera].ammo_count = min(weapon_player[i_entity_camera].ammo_count, component_::weapon_::ammo_::MAX);
 		}

@@ -135,7 +135,8 @@ void Clip_Triangle(
 			__int32 i_vertex_next = (i_vertex + 1) % n_vertices;
 			float delta = (d[i_vertex_next] - d[i_vertex]);
 			t_interval[i_vertex] = (0.0f - d[i_vertex]) / delta;
-			t_interval[i_vertex] = blend(0.0f, t_interval[i_vertex], delta == 0.0f);
+			//t_interval[i_vertex] = blend(0.0f, t_interval[i_vertex], delta == 0.0f);
+			t_interval[i_vertex] = delta == 0.0f ? 0.0f : t_interval[i_vertex];
 		}
 
 		const __int32 i_write = i_read ^ 1;
@@ -471,7 +472,7 @@ void Renderer_FRONT_END(
 					position[i_axis] = convert_float(position_fxp >> FIXED_POINT_SHIFT) + (convert_float(position_fxp & sub_mask) / scale_fxp);
 				}
 
-				const __m128i bit = set_one_si128();
+				const __m128i bit = set_all(1);
 				{
 					const __m128 zero = set_zero();
 					__m128 w_value = position[W];

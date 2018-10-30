@@ -242,7 +242,8 @@ void systems_::monster_::face_target(
 			int3_ position_target;
 			bool is_target_player = target_id == component_::behaviour_::target_id_::PLAYER;
 			for (__int32 i_axis = X; i_axis < W; i_axis++) {
-				position_target.i[i_axis] = blend_int(position_player.i[i_axis], position_patrol.i[i_axis], is_target_player);
+				//position_target.i[i_axis] = blend_int(position_player.i[i_axis], position_patrol.i[i_axis], is_target_player);
+				position_target.i[i_axis] = is_target_player ? position_player.i[i_axis] : position_patrol.i[i_axis];
 			}
 
 			float3_ target_vector;
@@ -266,8 +267,10 @@ void systems_::monster_::face_target(
 				bool is_anti_parallel = v.x < -0.999f;
 
 				for (__int32 i_axis = X; i_axis <= W; i_axis++) {
-					q_look.f[i_axis] = blend(q_zero.f[i_axis], q_look.f[i_axis], is_parallel);
-					q_look.f[i_axis] = blend(q_180.f[i_axis], q_look.f[i_axis], is_anti_parallel);
+					//q_look.f[i_axis] = blend(q_zero.f[i_axis], q_look.f[i_axis], is_parallel);
+					//q_look.f[i_axis] = blend(q_180.f[i_axis], q_look.f[i_axis], is_anti_parallel);
+					q_look.f[i_axis] = is_parallel ? q_zero.f[i_axis] : q_look.f[i_axis];
+					q_look.f[i_axis] = is_anti_parallel ? q_180.f[i_axis] : q_look.f[i_axis];
 				}
 
 				Normalise_Quaternion(q_look);
@@ -286,7 +289,8 @@ void systems_::monster_::face_target(
 
 			bool is_no_target = target_id == component_::behaviour_::target_id_::NULL_;
 			for (__int32 i_axis = X; i_axis <= W; i_axis++) {
-				model_space_update[i_entity].q_rotate.f[i_axis] = blend(model_space_update[i_entity].q_rotate.f[i_axis], q_out.f[i_axis], is_no_target);
+				//model_space_update[i_entity].q_rotate.f[i_axis] = blend(model_space_update[i_entity].q_rotate.f[i_axis], q_out.f[i_axis], is_no_target);
+				model_space_update[i_entity].q_rotate.f[i_axis] = is_no_target ? model_space_update[i_entity].q_rotate.f[i_axis] : q_out.f[i_axis];
 			}
 
 			matrix temp;
@@ -474,11 +478,13 @@ void systems_::monster_::process_effects(
 			{
 				effect[i_entity].petrify.timer += timer.delta_time;
 				effect[i_entity].petrify.timer = min(effect[i_entity].petrify.timer, effect[i_entity].petrify.time_limit);
-				effect[i_entity].petrify.timer = blend(0.0f, effect[i_entity].petrify.timer, is_petrify_triggered);
+				//effect[i_entity].petrify.timer = blend(0.0f, effect[i_entity].petrify.timer, is_petrify_triggered);
+				effect[i_entity].petrify.timer = is_petrify_triggered ? 0.0f : effect[i_entity].petrify.timer;
 				bool is_running = effect[i_entity].petrify.timer < effect[i_entity].petrify.time_limit;
 
 				const float petrify_rate = 0.02f;
-				effect[i_entity].petrify.t_interval += blend(petrify_rate, -petrify_rate, is_running);
+				//effect[i_entity].petrify.t_interval += blend(petrify_rate, -petrify_rate, is_running);
+				effect[i_entity].petrify.t_interval += is_running ? petrify_rate : -petrify_rate;
 				effect[i_entity].petrify.t_interval = max(0.0f, effect[i_entity].petrify.t_interval);
 				effect[i_entity].petrify.t_interval = min(1.0f, effect[i_entity].petrify.t_interval);
 
@@ -734,7 +740,8 @@ void systems_::monster_::update_fly(
 
 			const __int32 behaviour_id = behaviour[i_entity].behaviour_nodes[behaviour[i_entity].i_node].behaviour_id;
 			//bool is_falling = (behaviour_id == component_::behaviour_::id_::DEATH) || (behaviour_id == component_::behaviour_::id_::DEAD);
-			move[i_entity].velocity.y = blend(fly[i_entity].acceleration_rise, 0.0f, is_rising);
+			//move[i_entity].velocity.y = blend(fly[i_entity].acceleration_rise, 0.0f, is_rising);
+			move[i_entity].velocity.y = is_rising ? fly[i_entity].acceleration_rise : 0.0f;
 		}
 	}
 }
@@ -783,36 +790,44 @@ void systems_::monster_::update_behaviour(
 			bool is_timed_behaviour = behaviour_data.time_duration != 0.0f;
 			{
 				bool is_expired = (behaviour_node.timer > behaviour_data.time_duration) && is_timed_behaviour;
-				behaviour[i_entity].i_node = blend_int(behaviour_node.i_next_node, behaviour[i_entity].i_node, is_expired);
-				behaviour_node.timer = blend(0.0f, behaviour_node.timer, is_expired);
+				//behaviour[i_entity].i_node = blend_int(behaviour_node.i_next_node, behaviour[i_entity].i_node, is_expired);
+				behaviour[i_entity].i_node = is_expired ? behaviour_node.i_next_node : behaviour[i_entity].i_node;
+				//behaviour_node.timer = blend(0.0f, behaviour_node.timer, is_expired);
+				behaviour_node.timer = is_expired ? 0.0f : behaviour_node.timer;
 			}
 			{
 				bool is_end_animation = (!is_timed_behaviour) && animation[i_entity].is_end_animation;
-				behaviour[i_entity].i_node = blend_int(behaviour_node.i_next_node, behaviour[i_entity].i_node, is_end_animation);
+				//behaviour[i_entity].i_node = blend_int(behaviour_node.i_next_node, behaviour[i_entity].i_node, is_end_animation);
+				behaviour[i_entity].i_node = is_end_animation ? behaviour_node.i_next_node : behaviour[i_entity].i_node;
 			}
 			{
 				__int32 i_node_match = INVALID_RESULT;
 				for (__int32 i_node = 0; i_node < behaviour[i_entity].n_nodes; i_node++) {
 					__int32 behaviour_id = behaviour[i_entity].behaviour_nodes[i_node].behaviour_id;
 					bool is_match = behaviour_id == behaviour[i_entity].trigger_id;
-					i_node_match = blend_int(i_node, i_node_match, is_match);
+					//i_node_match = blend_int(i_node, i_node_match, is_match);
+					i_node_match = is_match ? i_node : i_node_match;
 				}
 				bool is_match = i_node_match != INVALID_RESULT;
-				behaviour[i_entity].i_node = blend_int(i_node_match, behaviour[i_entity].i_node, is_match);
+				//behaviour[i_entity].i_node = blend_int(i_node_match, behaviour[i_entity].i_node, is_match);
+				behaviour[i_entity].i_node = is_match ? i_node_match : behaviour[i_entity].i_node;
 				behaviour[i_entity].trigger_id = component_::behaviour_::id_::NULL_;
 			}
 
 			bool is_new_behaviour = i_node_current != behaviour[i_entity].i_node;
 			const __int32 behaviour_id = behaviour[i_entity].behaviour_nodes[behaviour[i_entity].i_node].behaviour_id;
 			const __int32 animation_id = behaviour_manager.behaviour_data[behaviour_id].animation_id;
-			animation[i_entity].trigger_id = blend_int(animation_id, animation[i_entity].trigger_id, is_new_behaviour);
-			behaviour[i_entity].state_trigger = blend_int(behaviour_id, component_::behaviour_::id_::NULL_, is_new_behaviour);
+			//animation[i_entity].trigger_id = blend_int(animation_id, animation[i_entity].trigger_id, is_new_behaviour);
+			animation[i_entity].trigger_id = is_new_behaviour ? animation_id : animation[i_entity].trigger_id;
+			//behaviour[i_entity].state_trigger = blend_int(behaviour_id, component_::behaviour_::id_::NULL_, is_new_behaviour);
+			behaviour[i_entity].state_trigger = is_new_behaviour ? behaviour_id : component_::behaviour_::id_::NULL_;
 
 			{
 				__int32 i_nodes[2];
 				i_nodes[0] = i_node_current;
 				i_nodes[1] = behaviour[i_entity].i_node;
-				__int32 n_nodes = blend_int(2, 0, is_new_behaviour);
+				//__int32 n_nodes = blend_int(2, 0, is_new_behaviour);
+				__int32 n_nodes = is_new_behaviour ? 2 : 0;
 				for (__int32 i_node = 0; i_node < n_nodes; i_node++) {
 
 					const __int32 behaviour_id = behaviour[i_entity].behaviour_nodes[i_nodes[i_node]].behaviour_id;

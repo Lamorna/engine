@@ -47,17 +47,22 @@ void systems_::player_::model_select(
 	result[3] = (user_input.input_mask & (0x1 << user_input_::PLAYER_FOUR)) != 0x0;
 
 	__int32 i_new = i_current;
-	i_new = blend_int(0, i_new, result[0]);
-	i_new = blend_int(1, i_new, result[1]);
-	i_new = blend_int(2, i_new, result[2]);
-	i_new = blend_int(3, i_new, result[3]);
+	//i_new = blend_int(0, i_new, result[0]);
+	//i_new = blend_int(1, i_new, result[1]);
+	//i_new = blend_int(2, i_new, result[2]);
+	//i_new = blend_int(3, i_new, result[3]);
+	i_new = result[0] ? 0 : i_new;
+	i_new = result[1] ? 1 : i_new;
+	i_new = result[2] ? 2 : i_new;
+	i_new = result[3] ? 3 : i_new;
 
 	camera[i_new].is_stepped = i_new != i_current;
 
 	for (__int32 i_axis = X; i_axis < W; i_axis++) {
 
 		__int32 current_position = base[i_current].position_fixed.i[i_axis] + camera[i_current].offset.i[i_axis];
-		camera[i_new].previous_position.i[i_axis] = blend_int(current_position, camera[i_new].previous_position.i[i_axis], camera[i_new].is_stepped);
+		//camera[i_new].previous_position.i[i_axis] = blend_int(current_position, camera[i_new].previous_position.i[i_axis], camera[i_new].is_stepped);
+		camera[i_new].previous_position.i[i_axis] = camera[i_new].is_stepped ? current_position : camera[i_new].previous_position.i[i_axis];
 	}
 
 	__int32 i_archetype = component_fetch.i_archetypes[0];
@@ -154,10 +159,15 @@ void systems_::player_::impart_velocity(
 
 				for (__int32 i = X; i < W; i++) {
 
-					move_direction.f[i] += blend(-move_forward.f[i], move_direction.f[i], is_forward);
-					move_direction.f[i] += blend(move_forward.f[i], move_direction.f[i], is_back);
-					move_direction.f[i] += blend(-move_left.f[i], move_direction.f[i], is_left);
-					move_direction.f[i] += blend(move_left.f[i], move_direction.f[i], is_right);
+					//move_direction.f[i] += blend(-move_forward.f[i], move_direction.f[i], is_forward);
+					//move_direction.f[i] += blend(move_forward.f[i], move_direction.f[i], is_back);
+					//move_direction.f[i] += blend(-move_left.f[i], move_direction.f[i], is_left);
+					//move_direction.f[i] += blend(move_left.f[i], move_direction.f[i], is_right);
+					move_direction.f[i] += is_forward ? -move_forward.f[i] : move_direction.f[i];
+					move_direction.f[i] += is_back ? move_forward.f[i] : move_direction.f[i];
+					move_direction.f[i] += is_left ? -move_left.f[i] : move_direction.f[i];
+					move_direction.f[i] += is_right ? move_left.f[i] : move_direction.f[i];
+
 				}
 
 				float3_ move_mapped;
@@ -172,12 +182,16 @@ void systems_::player_::impart_velocity(
 			float vertical_velocity;
 			{
 				camera[i_entity].is_jumped = (user_input.input_mask & (1 << user_input_::JUMP)) != 0;
-				vertical_velocity = blend(impulse_jump, 0.0f, camera[i_entity].is_jumped);
+				//vertical_velocity = blend(impulse_jump, 0.0f, camera[i_entity].is_jumped);
+				vertical_velocity = camera[i_entity].is_jumped ? impulse_jump : 0.0f;
 			}
 
-			move[i_entity].velocity.x += blend(horizontal_velocity.x, 0.0f, collider[i_entity].is_ground_contact);
-			move[i_entity].velocity.y += blend(vertical_velocity, 0.0f, collider[i_entity].is_ground_contact);
-			move[i_entity].velocity.z += blend(horizontal_velocity.z, 0.0f, collider[i_entity].is_ground_contact);
+			//move[i_entity].velocity.x += blend(horizontal_velocity.x, 0.0f, collider[i_entity].is_ground_contact);
+			//move[i_entity].velocity.y += blend(vertical_velocity, 0.0f, collider[i_entity].is_ground_contact);
+			//move[i_entity].velocity.z += blend(horizontal_velocity.z, 0.0f, collider[i_entity].is_ground_contact);
+			move[i_entity].velocity.x += collider[i_entity].is_ground_contact ? horizontal_velocity.x : 0.0f;
+			move[i_entity].velocity.y += collider[i_entity].is_ground_contact ? vertical_velocity : 0.0f;
+			move[i_entity].velocity.z += collider[i_entity].is_ground_contact ? horizontal_velocity.z : 0.0f;
 		}
 	}
 }
@@ -243,7 +257,8 @@ void systems_::player_::impart_velocity(
 
 				static const float t_increment = 0.05f;
 
-				camera[i_entity].t_smooth_step = blend(0.0f, camera[i_entity].t_smooth_step, camera[i_entity].is_stepped);
+				//camera[i_entity].t_smooth_step = blend(0.0f, camera[i_entity].t_smooth_step, camera[i_entity].is_stepped);
+				camera[i_entity].t_smooth_step = camera[i_entity].is_stepped ? 0.0f : camera[i_entity].t_smooth_step;
 				float t_smoothed = Smooth_Step(0.0f, 1.0f, camera[i_entity].t_smooth_step);
 				__int64 t_smooth_int = __int64(t_smoothed * fixed_scale_real);
 
@@ -460,15 +475,19 @@ void systems_::player_::update_animation_driver(
 
 			float speed = Vector_Magnitude(move[i_entity].velocity);
 			bool is_moving = speed > 0.0f;
-			__int32 moving_id = blend_int(animation_data_::id_::WALK, animation_data_::id_::IDLE, is_moving);
-			new_animation_id = blend_int(new_animation_id, moving_id, is_pain);
+			//__int32 moving_id = blend_int(animation_data_::id_::WALK, animation_data_::id_::IDLE, is_moving);
+			__int32 moving_id = is_moving ? animation_data_::id_::WALK : animation_data_::id_::IDLE;
+			//new_animation_id = blend_int(new_animation_id, moving_id, is_pain);
+			new_animation_id = is_pain ? new_animation_id : moving_id;
 
 			bool is_triggered = animation_driver[i_entity].trigger_id != animation_data_::id_::NULL_;
-			new_animation_id = blend_int(animation_driver[i_entity].trigger_id, new_animation_id, is_triggered);
+			//new_animation_id = blend_int(animation_driver[i_entity].trigger_id, new_animation_id, is_triggered);
+			new_animation_id = is_triggered ? animation_driver[i_entity].trigger_id : new_animation_id;
 			animation_driver[i_entity].trigger_id = animation_data_::id_::NULL_;
 
 			bool is_changed = new_animation_id != animation_driver[i_entity].i_current_animation;
-			animation[i_entity].trigger_id = blend_int(new_animation_id, animation[i_entity].trigger_id, is_changed || is_triggered);
+			//animation[i_entity].trigger_id = blend_int(new_animation_id, animation[i_entity].trigger_id, is_changed || is_triggered);
+			animation[i_entity].trigger_id = is_changed || is_triggered ? new_animation_id : animation[i_entity].trigger_id;
 			animation_driver[i_entity].i_current_animation = new_animation_id;
 		}
 	}

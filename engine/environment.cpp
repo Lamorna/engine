@@ -166,7 +166,8 @@ void systems_::environment_::update_doors(
 
 			if (!Match_Entity_Mask(i_entity, fetch.component_masks, archetype)) { continue; };
 
-			float move_speed = blend(-close_speed_g, close_speed_g, trigger[i_entity].is_triggered);
+			//float move_speed = blend(-close_speed_g, close_speed_g, trigger[i_entity].is_triggered);
+			float move_speed = trigger[i_entity].is_triggered ? -close_speed_g : close_speed_g;
 
 			door[i_entity].interval += timer.delta_time * move_speed;
 			door[i_entity].interval = max(door[i_entity].interval, 0.0f);
@@ -178,9 +179,11 @@ void systems_::environment_::update_doors(
 			}
 
 			bool is_moving = (door[i_entity].interval > 0.0f) && (door[i_entity].interval < 1.0f);
-			__int32 new_state = blend_int(component_::door_::state_::MOVE, component_::door_::state_::STATIC, is_moving);
+			//__int32 new_state = blend_int(component_::door_::state_::MOVE, component_::door_::state_::STATIC, is_moving);
+			__int32 new_state = is_moving ? component_::door_::state_::MOVE : component_::door_::state_::STATIC;
 			bool is_state_change = new_state != door[i_entity].state;
-			door[i_entity].state_trigger = blend_int(new_state, component_::door_::state_::NULL_, is_state_change);
+			//door[i_entity].state_trigger = blend_int(new_state, component_::door_::state_::NULL_, is_state_change);
+			door[i_entity].state_trigger = is_state_change ? new_state : component_::door_::state_::NULL_;
 			door[i_entity].state = new_state;
 		}
 	}
@@ -269,7 +272,8 @@ void systems_::environment_::update_platforms(
 			platform[i_entity].blend.t_interval += timer.delta_time * platform[i_entity].blend.blend_speed;
 			platform[i_entity].blend.t_interval = min(1.0f, platform[i_entity].blend.t_interval);
 			bool is_at_limit = platform[i_entity].blend.t_interval == 1.0f;
-			platform[i_entity].blend.t_interval = blend(-1.0f, platform[i_entity].blend.t_interval, is_at_limit);
+			//platform[i_entity].blend.t_interval = blend(-1.0f, platform[i_entity].blend.t_interval, is_at_limit);
+			platform[i_entity].blend.t_interval = is_at_limit ? -1.0f : platform[i_entity].blend.t_interval;
 			float t_smooth = Smooth_Step(0.0f, 1.0f, abs(platform[i_entity].blend.t_interval));
 
 			texture_blend[i_entity].interval = t_smooth;

@@ -648,7 +648,8 @@ void systems_::entity_::apply_gravity(
 			float speed = Vector_Normalise_Magnitude(horizontal_velocity, horizontal_direction);
 			float new_friction = (mass[i_entity].value * speed * 0.2f) + 80.0f;
 			//float friction = blend(friction_ground, 0.0f, collider[i_entity].is_ground_contact);
-			float friction = blend(new_friction, 0.0f, collider[i_entity].is_ground_contact);
+			//float friction = blend(new_friction, 0.0f, collider[i_entity].is_ground_contact);
+			float friction = collider[i_entity].is_ground_contact ? new_friction : 0.0f;
 			speed -= friction * timer.delta_time;
 			speed = max(speed, 0.0f);
 			move[i_entity].velocity.x = horizontal_direction.x * speed;
@@ -992,7 +993,8 @@ void systems_::entity_::out_of_bounds(
 
 			bool is_out_bounds = base[i_entity].position_fixed.y < fall_limit;
 			base[i_entity].position_fixed.y = max(base[i_entity].position_fixed.y, fall_limit);
-			move[i_entity].velocity *= blend(0.0f, 1.0f, is_out_bounds);
+			//move[i_entity].velocity *= blend(0.0f, 1.0f, is_out_bounds);
+			move[i_entity].velocity *= is_out_bounds ? 0.0f : 1.0f;
 		}
 	}
 }
@@ -1037,10 +1039,12 @@ void systems_::entity_::out_of_bounds_respawn(
 			bool is_out_bounds = base[i_entity].position_fixed.y < fall_limit;
 
 			for (__int32 i_axis = X; i_axis < W; i_axis++) {
-				base[i_entity].position_fixed.i[i_axis] = blend_int(spawn[i_entity].position.i[i_axis], base[i_entity].position_fixed.i[i_axis], is_out_bounds);
+				//base[i_entity].position_fixed.i[i_axis] = blend_int(spawn[i_entity].position.i[i_axis], base[i_entity].position_fixed.i[i_axis], is_out_bounds);
+				base[i_entity].position_fixed.i[i_axis] = is_out_bounds ? spawn[i_entity].position.i[i_axis] : base[i_entity].position_fixed.i[i_axis];
 			}
 
-			move[i_entity].velocity *= blend(0.0f, 1.0f, is_out_bounds);
+			//move[i_entity].velocity *= blend(0.0f, 1.0f, is_out_bounds);
+			move[i_entity].velocity *= is_out_bounds ? 0.0f : 1.0f;
 		}
 	}
 }
@@ -1084,10 +1088,17 @@ void systems_::entity_::update_animation(
 			float& frame_interval = animation[i_entity].frame_interval;
 			frame_interval += animation[i_entity].frame_speed * animation[i_entity].frame_speed_modifier * timer.delta_time;
 			animation[i_entity].is_frame_change = frame_interval > 1.0f;
-			frame_interval = blend(frame_interval - 1.0f, frame_interval, animation[i_entity].is_frame_change);
+			//frame_interval = blend(frame_interval - 1.0f, frame_interval, animation[i_entity].is_frame_change);
+			frame_interval = animation[i_entity].is_frame_change ? frame_interval - 1.0f : frame_interval;
 
-			animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW] = blend_int(animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI], animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW], animation[i_entity].is_frame_change);
-			animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI] = blend_int(animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI], animation[i_entity].is_frame_change);
+			//animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW] = blend_int(animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI], animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW], animation[i_entity].is_frame_change);
+			animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW] = 
+				animation[i_entity].is_frame_change ? animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI] : animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_LOW];
+
+			//animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI] = blend_int(animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI], animation[i_entity].is_frame_change);
+			animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI] = 
+				animation[i_entity].is_frame_change ? animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] : animation[i_entity].i_frames[component_::animation_::CURRENT_FRAME_HI];
+
 			animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] += animation[i_entity].is_frame_change;
 
 			const animation_model_& animation_model = animation_manager.animation_model[animation[i_entity].model_id];
@@ -1095,20 +1106,26 @@ void systems_::entity_::update_animation(
 			const __int32 frame_limit = animation_model.animation_data[i_animation].i_start + animation_model.animation_data[i_animation].n_frames;
 
 			animation[i_entity].is_end_animation = animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] == frame_limit;
-			animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = blend_int(animation_model.animation_data[i_animation].i_start, animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], animation[i_entity].is_end_animation);
+			//animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = blend_int(animation_model.animation_data[i_animation].i_start, animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], animation[i_entity].is_end_animation);
+			animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = 
+				animation[i_entity].is_end_animation ? animation_model.animation_data[i_animation].i_start : animation[i_entity].i_frames[component_::animation_::NEXT_FRAME];
 
 			{
 				//const __int32 n_animations = animation_manager.animation_model[animation[i_entity].model_id].n_animations;
 				__int32 i_animation_trigger = INVALID_RESULT;
 				for (__int32 i_animation = 0; i_animation < animation_data_::id_::COUNT; i_animation++) {
 					bool is_match = animation_manager.animation_model[animation[i_entity].model_id].animation_data[i_animation].id == animation[i_entity].trigger_id;
-					i_animation_trigger = blend_int(i_animation, i_animation_trigger, is_match);
+					//i_animation_trigger = blend_int(i_animation, i_animation_trigger, is_match);
+					i_animation_trigger = is_match ? i_animation : i_animation_trigger;
 				}
 				animation[i_entity].trigger_id = animation_data_::id_::NULL_;
 				bool is_new_animation = i_animation_trigger != INVALID_RESULT;
-				i_animation_trigger = blend_int(i_animation_trigger, 0, is_new_animation);
-				animation[i_entity].i_current = blend_int(i_animation_trigger, animation[i_entity].i_current, is_new_animation);
-				animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = blend_int(animation_model.animation_data[i_animation_trigger].i_start, animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], is_new_animation);
+				//i_animation_trigger = blend_int(i_animation_trigger, 0, is_new_animation);
+				i_animation_trigger = is_new_animation ? i_animation_trigger : 0;
+				//animation[i_entity].i_current = blend_int(i_animation_trigger, animation[i_entity].i_current, is_new_animation);
+				animation[i_entity].i_current = is_new_animation ? i_animation_trigger : animation[i_entity].i_current;
+				//animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = blend_int(animation_model.animation_data[i_animation_trigger].i_start, animation[i_entity].i_frames[component_::animation_::NEXT_FRAME], is_new_animation);
+				animation[i_entity].i_frames[component_::animation_::NEXT_FRAME] = is_new_animation ? animation_model.animation_data[i_animation_trigger].i_start : animation[i_entity].i_frames[component_::animation_::NEXT_FRAME];
 			}
 		}
 	}
@@ -1358,7 +1375,7 @@ void systems_::entity_::update_texture_space_transform(
 			m_rotate_z[Z] = load_u(temp[Z].f);
 			m_rotate_z[W] = load_u(temp[W].f);
 
-			const __m128 one = set_one();
+			const __m128 one = set_all(1.0f);
 			__m128 rotated_period = Vector_X_Matrix(period, m_rotate_z);
 			matrix displacement;
 			for (__int32 i = 0; i < 4; i++) {

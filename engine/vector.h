@@ -369,13 +369,6 @@ static VM_INLINE __m128i convert_int_trunc(__m128 a) {
 static VM_INLINE __m128 set_zero(void) {
 	return _mm_setzero_ps();
 }
-static VM_INLINE __m128 set_one(void) {
-	__m128i temp = _mm_setzero_si128();
-	temp = _mm_cmpeq_epi16(temp, temp);
-	temp = _mm_slli_epi32(temp, 25);
-	temp = _mm_srli_epi32(temp, 2);
-	return _mm_castsi128_ps(temp);
-}
 static VM_INLINE __m128 reciprocal(__m128 a) {					// faster than 1.0f/x
 	return _mm_rcp_ps(a);
 }
@@ -601,26 +594,6 @@ static VM_INLINE __m128 convert_float(__m128i a) {
 static VM_INLINE __m128i set_zero_si128(void) {
 	return _mm_setzero_si128();
 }
-static VM_INLINE __m128i set_false(void) {
-	return _mm_setzero_si128();
-}
-static VM_INLINE __m128i set_one_si128(void) {
-	__m128i temp = _mm_setzero_si128();
-	temp = _mm_cmpeq_epi16(temp, temp);
-	return _mm_srli_epi32(temp, 31);
-}
-static VM_INLINE __m128i set_neg_one(void) {
-	__m128i temp = _mm_setzero_si128();
-	return _mm_cmpeq_epi16(temp, temp);
-}
-static VM_INLINE __m128i set_all_bits(void) {
-	__m128i temp = _mm_setzero_si128();
-	return _mm_cmpeq_epi16(temp, temp);
-}
-static VM_INLINE __m128i set_true(void) {
-	__m128i temp = _mm_setzero_si128();
-	return _mm_cmpeq_epi16(temp, temp);
-}
 static VM_INLINE __m128i rotate_right(__m128i a) {
 	return _mm_shuffle_epi32(a, _MM_SHUFFLE(0, 3, 2, 1));
 }
@@ -693,19 +666,19 @@ static __m128i const load_mask[] = {
 
 //==============================================================================================
 
-static inline __int32 blend_int(__int32 a, __int32 b, __int32 boolean){
+//static inline __int32 blend_int(__int32 a, __int32 b, __int32 boolean){
+//
+//	return (a & -boolean) | (b & -(boolean ^ 0x1));
+//}
+//static inline __int64 blend_int(__int64 a, __int64 b, __int64 boolean) {
+//
+//	return (a & -boolean) | (b & -(boolean ^ 0x1));
+//}
 
-	return (a & -boolean) | (b & -(boolean ^ 0x1));
-}
-static inline __int64 blend_int(__int64 a, __int64 b, __int64 boolean) {
-
-	return (a & -boolean) | (b & -(boolean ^ 0x1));
-}
-
-static inline float blend(const float a, const float b, const bool boolean){
-
-	return store_s(blend(load_s(a), load_s(b), load_s(boolean) != set_zero_si128()));
-}
+//static inline float blend(const float a, const float b, const bool boolean){
+//
+//	return store_s(blend(load_s(a), load_s(b), load_s(boolean) != set_zero_si128()));
+//}
 
 //==============================================================================================
 
@@ -790,7 +763,7 @@ static void Vector_X_Matrix(const float3_& in, const matrix_& m, float3_& out) {
 	result += load_u(m[X].f) * set_all(in.x);
 	result += load_u(m[Y].f) * set_all(in.y);
 	result += load_u(m[Z].f) * set_all(in.z);
-	result += load_u(m[W].f) * set_one();
+	result += load_u(m[W].f) * set_all(1.0f);
 	float temp[4];
 	store_u(result, temp);
 	out.x = temp[X];
@@ -804,7 +777,7 @@ static void Vector_X_Matrix(const float3_& in, const matrix_& m, float4_& out) {
 	result += load_u(m[X].f) * broadcast(load_s(in.x));
 	result += load_u(m[Y].f) * broadcast(load_s(in.y));
 	result += load_u(m[Z].f) * broadcast(load_s(in.z));
-	result += load_u(m[W].f) * set_one();
+	result += load_u(m[W].f) * set_all(1.0f);
 	store_u(result, out.f);
 }
 
@@ -831,7 +804,7 @@ static void Initialise(matrix in) {
 	};
 
 	temp row4;
-	row4.f = set_one();
+	row4.f = set_all(1.0f);
 	row4.i = _mm_slli_si128(row4.i, 4 * 3);
 	row4.i = _mm_srli_si128(row4.i, 4 * 3);
 	for (__int32 i = 0; i < 4; i++) {

@@ -409,7 +409,8 @@ void Collision_Routine_MOVING(
 				collision_data.collidee.i_entity = grid.data[i_collidee].i_entity;
 				collision_data.collidee.i_axis = i_axis_out;
 				collision_data.collidee.normal = zero;
-				collision_data.collidee.normal.i[i_axis_out] = blend_int(1, -1, collider_data.direction.i[i_axis_out] < 0);
+				//collision_data.collidee.normal.i[i_axis_out] = blend_int(1, -1, collider_data.direction.i[i_axis_out] < 0);
+				collision_data.collidee.normal.i[i_axis_out] = collider_data.direction.i[i_axis_out] < 0 ? 1 : -1;
 				collision_data.collidee.position = grid.centre[i_collidee];
 				collision_data.collidee.total_extent = extent;
 				collision_data.t_interval = (__int32)t_hit;
@@ -510,7 +511,8 @@ void Collision_Routine_STATIC(
 				collision_data.collidee.i_entity = grid.data[i_collidee].i_entity;
 				collision_data.collidee.i_axis = i_axis_out;
 				collision_data.collidee.normal = zero;
-				collision_data.collidee.normal.i[i_axis_out] = blend_int(1, -1, collider_data.direction.i[i_axis_out] < 0);
+				//collision_data.collidee.normal.i[i_axis_out] = blend_int(1, -1, collider_data.direction.i[i_axis_out] < 0);
+				collision_data.collidee.normal.i[i_axis_out] = collider_data.direction.i[i_axis_out] < 0 ? 1 : -1;
 				collision_data.collidee.position = grid.centre[i_collidee];
 				collision_data.collidee.total_extent = extent;
 				collision_data.t_interval = (__int32)t_hit;
@@ -832,7 +834,8 @@ void systems_::collide_::collision_detection(
 		i_entity++;
 		bool is_next_archetype = i_entity == archetype.n_entities;
 		i_archetype_index += is_next_archetype;
-		i_entity = blend_int(0, i_entity, is_next_archetype);
+		//i_entity = blend_int(0, i_entity, is_next_archetype);
+		i_entity = is_next_archetype ? 0 : i_entity;
 	}
 }
 

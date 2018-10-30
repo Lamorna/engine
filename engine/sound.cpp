@@ -360,7 +360,8 @@ void systems_::sound_::play_sounds(
 		const __int32 delta_bytes = play_cursor - direct_sound.previous_play_cursor;
 		const __int32 delta_bytes_wrapped = buffer_size_bytes + delta_bytes;
 		const bool is_wrapped = delta_bytes < 0;
-		const __int32 n_bytes_write = blend_int(delta_bytes_wrapped, delta_bytes, is_wrapped);
+		//const __int32 n_bytes_write = blend_int(delta_bytes_wrapped, delta_bytes, is_wrapped);
+		const __int32 n_bytes_write = is_wrapped ? delta_bytes_wrapped : delta_bytes;
 		const __int32 n_frames = n_bytes_write / (n_channels * n_bytes_per_sample);
 
 		for (__int32 i_active = 0; i_active < sound_mixer.n_active; i_active++) {
@@ -404,11 +405,13 @@ void systems_::sound_::play_sounds(
 
 				const __int32 i_sound = sound_mixer.i_active[i_active];
 				bool is_match = sound_mixer.sounds[i_sound].source_id == sound_triggers.source_ids[i_trigger];
-				i_current_sound = blend_int(i_sound, i_current_sound, is_match);
+				//i_current_sound = blend_int(i_sound, i_current_sound, is_match);
+				i_current_sound = is_match ? i_sound : i_current_sound;
 			}
 			bool is_new_sound = i_current_sound < 0;
 			const __int32 i_new_sound = sound_mixer.i_inactive[sound_mixer.n_inactive - 1];
-			const __int32 i_sound = blend_int(i_new_sound, i_current_sound, is_new_sound);
+			//const __int32 i_sound = blend_int(i_new_sound, i_current_sound, is_new_sound);
+			const __int32 i_sound = is_new_sound ? i_new_sound : i_current_sound;
 
 			sound_mixer.sounds[i_sound].i_wav = sound_triggers.i_wavs[i_trigger];
 			sound_mixer.sounds[i_sound].current_sample = 0;
@@ -436,7 +439,7 @@ void systems_::sound_::play_sounds(
 		// volume	1.0 - 0.0
 
 		const __m128 zero = set_zero();
-		const __m128 one = set_one();
+		const __m128 one = set_all(1.0f);
 
 		const __m128 spatial_max = one;
 		const __m128 spatial_min = -one;
@@ -478,7 +481,7 @@ void systems_::sound_::play_sounds(
 			}
 			Transpose(positions);
 
-			positions[W] = set_one();
+			positions[W] = set_all(1.0f);
 
 			matrix camera_matrix;
 			for (__int32 i = 0; i < 4; i++) {
@@ -545,7 +548,7 @@ void systems_::sound_::play_sounds(
 
 		// ----------------------------------------------------------------------------------------------------------
 		{
-			const __m128 max = set_one();
+			const __m128 max = set_all(1.0f);
 			const __m128 min = -max;
 			const __m128 shift = broadcast(load_s(256.0f / 2.0f));
 			const __m128 scale = reciprocal(shift);
@@ -564,7 +567,8 @@ void systems_::sound_::play_sounds(
 				const __int32 i_wav = sound_mixer.sounds[i_sound].i_wav;
 				const __int32 n_samples_remaining = wavs[i_wav].n_samples - sound_mixer.sounds[i_sound].current_sample;
 				const bool is_ending = (n_samples_remaining < n_frames_oversample) && (!sound_mixer.sounds[i_sound].is_looped);
-				const __int32 n_samples_write = blend_int(n_samples_remaining, n_frames_oversample, is_ending);
+				//const __int32 n_samples_write = blend_int(n_samples_remaining, n_frames_oversample, is_ending);
+				const __int32 n_samples_write = is_ending ? n_samples_remaining : n_frames_oversample;
 
 				float* write_buffer = sound_buffer.samples;
 				__int32 current_sample = sound_mixer.sounds[i_sound].current_sample;

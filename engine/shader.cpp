@@ -24,7 +24,7 @@ void pixel_shader(
 
 	static const __m128 zero = set_zero();
 	static const __m128 half = set_all(0.5f);
-	static const __m128 one = set_one();
+	static const __m128 one = set_all(1.0f);
 	static const __m128 two = one + one;
 	static const __m128 three = two + one;
 	static const __m128i zero_int = set_zero_si128();
@@ -870,7 +870,7 @@ void Vertex_Lighting(
 			}
 
 			const __m128 extent = set_all(40.0f);
-			__m128i is_valid = set_true();
+			__m128i is_valid = set_all(-1);
 			is_valid &= (clip_space_position[i_vertex][X] - light_position[X]) < extent;
 			is_valid &= (clip_space_position[i_vertex][Y] - light_position[Y]) < extent;
 			is_valid &= (clip_space_position[i_vertex][Z] - light_position[Z]) < extent;
@@ -1070,7 +1070,7 @@ void Vertex_Lighting_REM(
 					Transpose(light_position);
 
 					const __m128 light_extent = set_all(100.0f);
-					__m128i is_valid = set_true();
+					__m128i is_valid = set_all(-1);
 					is_valid &= abs(centre[X] - light_position[X]) < (extent[X] + light_extent);
 					is_valid &= abs(centre[Y] - light_position[Y]) < (extent[Y] + light_extent);
 					is_valid &= abs(centre[Z] - light_position[Z]) < (extent[Z] + light_extent);

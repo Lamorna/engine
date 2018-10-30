@@ -35,7 +35,7 @@ __m128 Pack_Vector4(const __m128 &input, const unsigned __int32 mask_32) {
 	__m128 output = input;
 	__m128i move_distance = Move_Distances_LUT[mask_32];
 	__m128i zero = set_zero_si128();
-	__m128i one = set_one_si128();
+	__m128i one = set_all(1);
 	for (__int32 i_rotate = 0; i_rotate < 3; i_rotate++){
 		rotate = rotate_right(rotate);
 		move_distance = rotate_right(move_distance);
@@ -56,7 +56,7 @@ __m128i Pack_Vector4(const __m128i &input, const unsigned __int32 mask_32) {
 	__m128i output = input;
 	__m128i move_distance = Move_Distances_LUT[mask_32];
 	__m128i zero = set_zero_si128();
-	__m128i one = set_one_si128();
+	__m128i one = set_all(1);
 
 	//for (__int32 i_rotate = 0; i_rotate < 3; i_rotate++){
 	//	rotate = rotate_right(rotate);
@@ -104,7 +104,8 @@ void Vector_Normalise(float3_& in) {
 	float sum = temp.x + temp.y + temp.z;
 	float r_mag = store_s(_mm_rsqrt_ss(load_s(sum)));
 	bool is_zero = sum == 0.0f;
-	r_mag = blend(0.0f, r_mag, is_zero);
+	//r_mag = blend(0.0f, r_mag, is_zero);
+	r_mag = is_zero ? 0.0f : r_mag;
 	in.x *= r_mag;
 	in.y *= r_mag;
 	in.z *= r_mag;
@@ -123,7 +124,8 @@ void Vector_Normalise(const float3_& in, float3_& out) {
 	float sum = temp.x + temp.y + temp.z;
 	float r_mag = store_s(_mm_rsqrt_ss(load_s(sum)));
 	bool is_zero = sum == 0.0f;
-	r_mag = blend(0.0f, r_mag, is_zero);
+	//r_mag = blend(0.0f, r_mag, is_zero);
+	r_mag = is_zero ? 0.0f : r_mag;
 	out.x = in.x * r_mag;
 	out.y = in.y * r_mag;
 	out.z = in.z * r_mag;
@@ -143,7 +145,8 @@ float Vector_Normalise_Magnitude(const float3_& in, float3_& out) {
 	float mag = store_s(_mm_sqrt_ss(load_s(sum)));
 	float r_mag = store_s(reciprocal(load_s(mag)));
 	bool is_zero = sum == 0.0f;
-	r_mag = blend(0.0f, r_mag, is_zero);
+	//r_mag = blend(0.0f, r_mag, is_zero);
+	r_mag = is_zero ? 0.0f : r_mag;
 	out.x = in.x * r_mag;
 	out.y = in.y * r_mag;
 	out.z = in.z * r_mag;
@@ -163,7 +166,8 @@ float Vector_Magnitude(const float3_& in) {
 	float sum = temp.x + temp.y + temp.z;
 	float mag = store_s(_mm_sqrt_ss(load_s(sum)));
 	bool is_zero = sum == 0.0f;
-	mag = blend(0.0f, mag, is_zero);
+	//mag = blend(0.0f, mag, is_zero);
+	mag = is_zero ? 0.0f : mag;
 	return mag;
 }
 
@@ -268,7 +272,8 @@ void Normalise_Quaternion(float4_& in) {
 	}
 	bool is_zero = sum == 0.0f;
 	float r_magnitude = store_s(_mm_rsqrt_ss(load_s(sum)));
-	r_magnitude = blend(0.0f, r_magnitude, is_zero);
+	//r_magnitude = blend(0.0f, r_magnitude, is_zero);
+	r_magnitude = is_zero ? 0.0f : r_magnitude;
 	for (__int32 i = X; i <= W; i++) {
 		in.f[i] *= r_magnitude;
 	}
@@ -286,7 +291,8 @@ void Normalise_Quaternion(const float4_& in, float4_& out) {
 	}
 	bool is_zero = sum == 0.0f;
 	float r_magnitude = store_s(_mm_rsqrt_ss(load_s(sum)));
-	r_magnitude = blend(0.0f, r_magnitude, is_zero);
+	//r_magnitude = blend(0.0f, r_magnitude, is_zero);
+	r_magnitude = is_zero ? 0.0f : r_magnitude;
 	for (__int32 i = X; i <= W; i++) {
 		out.f[i] = in.f[i] * r_magnitude;
 	}
@@ -452,7 +458,7 @@ __m128 Normalise_Axis_Aligned(const __m128& in) {
 	for (__int32 i = 0; i < 4; i++) {
 		max = max_vec(out[i], max);
 	}
-	__m128 one = set_one();
+	__m128 one = set_all(1.0f);
 	for (__int32 i = 0; i < 4; i++) {
 		__m128i result = (max == out[i]);
 		out[i] = blend(one, out[i], result);
@@ -493,7 +499,7 @@ __m128 Axis_Angle_To_Quaternion(__m128 const &axis_angle){
 	__m128 b4 = broadcast(load_s(s));
 	__m128 c4 = broadcast(load_s(c));
 	__m128 temp = blend(b4, c4, XYZ_Mask);
-	__m128 axis = blend(axis_angle, set_one(), XYZ_Mask);
+	__m128 axis = blend(axis_angle, set_all(1.0f), XYZ_Mask);
 	return temp * axis;
 }
 
@@ -526,7 +532,7 @@ __m128 Axis_Angle_To_Quaternion_Radians(__m128 const &axis_angle){
 	__m128 b4 = broadcast(load_s(s));
 	__m128 c4 = broadcast(load_s(c));
 	__m128 temp = blend(b4, c4, XYZ_Mask);
-	__m128 axis = blend(axis_angle, set_one(), XYZ_Mask);
+	__m128 axis = blend(axis_angle, set_all(1.0f), XYZ_Mask);
 	return temp * axis;
 }
 
@@ -586,7 +592,7 @@ void Quaternion_To_Matrix(const quaternion in[4], matrix out[4]){
 	// 4 quaternions input, 4 matrices output;
 
 	__m128 zero = set_zero();
-	__m128 one = set_one();
+	__m128 one = set_all(1.0f);
 
 	matrix q;
 	Transpose(in, q);
@@ -702,7 +708,7 @@ void Quaternion_To_Matrix_SINGLE(__m128 const &quaternion, matrix matrix){
 	//m[2][Z] = 1.0f - (2.0f * x * x) - (2.0f * y * y);
 	//m[2][W] = 0.0f;
 
-	__m128 one = set_one();
+	__m128 one = set_all(1.0f);
 	__m128 two = one + one;
 	__m128 x_y_z_w = quaternion;
 
@@ -747,7 +753,7 @@ void Quaternion_To_Matrix_SINGLE(__m128 const &quaternion, matrix matrix){
 	// c0 c1 c2 00	------> 	// a2 b2 c2 00	------------>		// b2 c2 a2 00
 	// 00 00 00 01				// 00 00 00 01						// 00 00 00 01	
 
-	matrix[W] = set_one() & ~XYZ_Mask;
+	matrix[W] = set_all(1.0f) & ~XYZ_Mask;
 	Transpose(matrix);
 
 	matrix[Y] = _mm_shuffle_ps(matrix[Y], matrix[Y], _MM_SHUFFLE(W, Y, X, Z));

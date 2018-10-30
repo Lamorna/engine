@@ -491,7 +491,8 @@ void Load_Quake_Model(
 				float s = (float)quake_mdl->texture_coordinates[index].s;
 				float t = (float)quake_mdl->texture_coordinates[index].t;
 				float add = (float)skin_width * 0.5f;
-				s += blend(add, 0.0f, (!is_front_face) && is_on_seam);
+				//s += blend(add, 0.0f, (!is_front_face) && is_on_seam);
+				s += (!is_front_face) && is_on_seam ? add : 0.0f;
 				vertices_mdl[i_vertex].x = (s + 0.5f) / (float)skin_width;
 				vertices_mdl[i_vertex].y = (t + 0.5f) / (float)skin_height;
 			}

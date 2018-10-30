@@ -652,7 +652,7 @@ void Rasteriser(
 	{ 0, 1, 2, 3 },
 	{ -3, -2, -1, 0 },
 	};
-	__m128i one = set_one_si128();
+	__m128i one = set_all(1);
 
 	for (__int32 i_edge = 0; i_edge < NUM_EDGES; i_edge++) {
 
