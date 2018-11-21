@@ -1,5 +1,8 @@
 #include "vector_math.h"
 
+static __m128i const XYZ_Mask =	set( ~0x0, ~0x0, ~0x0, 0x0	);
+
+
 const static __m128i Move_Distances_LUT[] = {
 
 	set( 0, 0, 0, 0 ),		// 0  |  		| 0000	| 0x
@@ -176,10 +179,10 @@ float Vector_Magnitude(const float3_& in) {
 ==================
 ==================
 */
-__m128 Vector_Normalise(const __m128 &in) {
+__m128 Vector_Normalise(const __m128 in) {
 
 	__m128i zero_mask = (in != set_zero());
-	matrix temp;
+	__m128 temp[4];
 	temp[X] = in * in;										// v squared
 	Transpose(temp);
 	temp[W] = temp[X] + temp[Y] + temp[Z];			// sum
@@ -192,9 +195,9 @@ __m128 Vector_Normalise(const __m128 &in) {
 ==================
 ==================
 */
-__m128 Vector_Normalise_Magnitude(const __m128 &in) {
+__m128 Vector_Normalise_Magnitude(const __m128 in) {
 	
-	matrix temp;
+	__m128 temp[4];
 	for (__int32 i = 0; i < 4; i++){
 		temp[i] = in;
 	}
@@ -218,9 +221,9 @@ __m128 Vector_Normalise_Magnitude(const __m128 &in) {
 ==================
 ==================
 */
-__m128 Vector_Normalise_4D(const __m128 &in) {
+__m128 Vector_Normalise_4D(const __m128 in) {
 
-	matrix temp;
+	__m128 temp[4];
 	for (__int32 i = 0; i < 4; i++){
 		temp[i] = in;
 	}
@@ -243,7 +246,7 @@ __m128 Vector_Normalise_4D(const __m128 &in) {
 ==================
 ==================
 */
-void Normalise_Quaternion(matrix in) {
+void Normalise_Quaternion(__m128 in[4]) {
 
 	Transpose(in);
 	__m128 sum = set_zero();
@@ -302,7 +305,7 @@ void Normalise_Quaternion(const float4_& in, float4_& out) {
 ==================
 ==================
 */
-void Normalise_Quaternion(const matrix in, matrix out) {
+void Normalise_Quaternion(const __m128 in[4], __m128 out[4]) {
 
 	Transpose(in, out);
 	__m128 sum = set_zero();
@@ -421,17 +424,17 @@ float Dot_Product(const float3_& a, const float3_& b) {
 ==================
 ==================
 */
-__m128 Cross_Product_3D( const __m128& av, const __m128& bv ) {			
+__m128 Cross_Product_3D( const __m128 av, const __m128 bv ) {			
 
-	matrix a;
-	matrix b;
+	__m128 a[4];
+	__m128 b[4];
 	for (__int32 i = 0; i < 4; i++) {
 		a[i] = av;
 		b[i] = bv;
 	}
 	Transpose(a);
 	Transpose(b);
-	matrix c;
+	__m128 c[4];
 	c[X] = (a[Y] * b[Z]) - (a[Z] * b[Y]);
 	c[Y] = (a[Z] * b[X]) - (a[X] * b[Z]);
 	c[Z] = (a[X] * b[Y]) - (a[Y] * b[X]);
@@ -444,12 +447,12 @@ __m128 Cross_Product_3D( const __m128& av, const __m128& bv ) {
 ==================
 ==================
 */
-__m128 Normalise_Axis_Aligned(const __m128& in) {
+__m128 Normalise_Axis_Aligned(const __m128 in) {
 
 	__m128i sign_bit = broadcast(load_s(0x80000000));
 	__m128i not_sign_bit = broadcast(load_s(~0x80000000));
 	__m128 saved_sign_bit = in & sign_bit;
-	matrix out;
+	__m128 out[4];
 	for (__int32 i = 0; i < 4; i++) {
 		out[i] = in & not_sign_bit;
 	}
@@ -473,11 +476,11 @@ __m128 Normalise_Axis_Aligned(const __m128& in) {
 ==================
 ==================
 */
-void Build_Transform_Matrix(const __m128& axis_angle, matrix matrix_in) {
+void Build_Transform_Matrix(const __m128 axis_angle, __m128 matrix_in[4]) {
 
-	matrix quaternion_m;
+	__m128 quaternion_m[4];
 	quaternion_m[X] = Axis_Angle_To_Quaternion(axis_angle);
-	matrix out[4];
+	__m128 out[4][4];
 	Quaternion_To_Matrix(quaternion_m, out);
 
 	for (__int32 i = 0; i < 4; i++) {
@@ -522,7 +525,7 @@ void Axis_Angle_To_Quaternion(float4_ const& in, float4_& out) {
 ==================
 ==================
 */
-__m128 Axis_Angle_To_Quaternion_Radians(__m128 const &axis_angle){
+__m128 Axis_Angle_To_Quaternion_Radians(const __m128 axis_angle){
 
 	float angle = store_s(_mm_shuffle_ps(axis_angle, axis_angle, _MM_SHUFFLE(W, W, W, W)));
 	float a = angle * 0.5f;
@@ -572,7 +575,7 @@ void Quaternion_To_Matrix(const float4_& in, matrix_& out) {
 ==================
 ==================
 */
-void Quaternion_To_Matrix(const quaternion in[4], matrix out[4]){
+void Quaternion_To_Matrix(const __m128 in[4], __m128 out[4][4]){
 
 	//m[0][X] = 1.0f - (2.0f * y * y) - (2.0f * z * z);
 	//m[0][Y] = (2.0f * x * y) + (2.0f * w * z);
@@ -594,9 +597,9 @@ void Quaternion_To_Matrix(const quaternion in[4], matrix out[4]){
 	__m128 zero = set_zero();
 	__m128 one = set_all(1.0f);
 
-	matrix q;
+	__m128 q[4];
 	Transpose(in, q);
-	matrix temp[4];
+	__m128 temp[4][4];
 
 	__m128 x2 = q[X] + q[X];
 	__m128 y2 = q[Y] + q[Y];
@@ -646,10 +649,10 @@ void Quaternion_To_Matrix(const quaternion in[4], matrix out[4]){
 ==================
 ==================
 */
-void Quaternion_X_Quaternion(const matrix a, const matrix b, matrix result){
+void Quaternion_X_Quaternion(const __m128 a[4], const __m128 b[4], __m128 result[4]){
 
-	matrix q0;
-	matrix q1;
+	__m128 q0[4];
+	__m128 q1[4];
 	Transpose(a, q0);
 	Transpose(b, q1);
 
@@ -691,7 +694,7 @@ float Smooth_Step(float edge0, float edge1, float t) {
 ==================
 ==================
 */
-void Quaternion_To_Matrix_SINGLE(__m128 const &quaternion, matrix matrix){
+void Quaternion_To_Matrix_SINGLE(__m128 const &quaternion, __m128 matrix[4]){
 
 	//m[0][X] = 1.0f - (2.0f * y * y) - (2.0f * z * z);
 	//m[0][Y] = (2.0f * x * y) + (2.0f * w * z);

@@ -7,8 +7,8 @@
 
 struct game_matrices_ {
 
-	matrix m_rotate_z;
-	matrix m_rotate_y;
+	__m128 m_rotate_z[4];
+	__m128 m_rotate_y[4];
 };
 
 //======================================================================

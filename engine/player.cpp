@@ -231,17 +231,17 @@ void systems_::player_::impart_velocity(
 
 				if (!Match_Entity_Mask(i_entity, component_fetch.component_masks, archetype)) { continue; };
 
-				matrix m_camera;
-				matrix m_projection;
+				__m128 m_camera[4];
+				__m128 m_projection[4];
 				for (__int32 i = 0; i < 4; i++) {
 					m_camera[i] = load_u(camera[i_entity].m_camera_space[i].f);
 					m_projection[i] = load_u(camera[i_entity].m_projection[i].f);
 				}
 
-				matrix m_view_space;
+				__m128 m_view_space[4];
 				Transpose(m_camera, m_view_space);
 
-				matrix m_clip_space;
+				__m128 m_clip_space[4];
 				Matrix_X_Matrix(m_projection, m_view_space, m_clip_space);
 
 				int3_ end_position;

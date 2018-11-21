@@ -483,7 +483,7 @@ void systems_::sound_::play_sounds(
 
 			positions[W] = set_all(1.0f);
 
-			matrix camera_matrix;
+			__m128 camera_matrix[4];
 			for (__int32 i = 0; i < 4; i++) {
 				camera_matrix[i] = load_u(command_buffer.m_clip_space[i].f);
 			}

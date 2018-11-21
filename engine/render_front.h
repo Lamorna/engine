@@ -254,8 +254,8 @@ struct display_ {
 
 	screen_bin_ screen_bin[thread_pool_::MAX_WORKER_THREADS][N_BINS_Y][N_BINS_X];
 
-	CACHE_ALIGN unsigned __int32 colour_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
-	CACHE_ALIGN float depth_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
+	SIMD_ALIGN unsigned __int32 colour_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
+	SIMD_ALIGN float depth_buffer_bin[thread_pool_::MAX_WORKER_THREADS][BIN_SIZE * BIN_SIZE];
 
 	float depth_tiles_4x4[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (4 * 4)];
 	float depth_tiles_16x16[thread_pool_::MAX_WORKER_THREADS][(BIN_SIZE * BIN_SIZE) / (16 * 16)];

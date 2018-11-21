@@ -31,18 +31,18 @@ void Quaternion_To_Matrix(const float4_&, matrix_&);
 
 __m128 Cross_Product_3D(const __m128&, const __m128&);
 __m128 Normalise_Axis_Aligned(const __m128&);
-void Build_Transform_Matrix(const __m128&, matrix);
+void Build_Transform_Matrix(const __m128&, __m128[4]);
 
 __m128 Axis_Angle_To_Quaternion(__m128 const&);
 __m128 Axis_Angle_To_Quaternion_Radians(__m128 const&);
 
-void Quaternion_To_Matrix(const quaternion[4], matrix[4]);
+void Quaternion_To_Matrix(const __m128[4], __m128[4][4]);
 
-void Quaternion_X_Quaternion(const matrix, const matrix, matrix);
+void Quaternion_X_Quaternion(const __m128[4], const __m128[4], __m128[4]);
 
-void Normalise_Quaternion(matrix);
+void Normalise_Quaternion(__m128[4]);
 
-void Normalise_Quaternion(const matrix, matrix);
+void Normalise_Quaternion(const __m128[4], __m128[4]);
 
 float Smooth_Step(float, float, float);
 

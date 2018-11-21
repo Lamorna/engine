@@ -18,7 +18,8 @@ void systems_::environment_::update_clouds(
 {
 
 	parameters_::environment_::update_clouds_* func_parameters = (parameters_::environment_::update_clouds_*)parameters;
-	const matrix& m_rotate_in = *func_parameters->m_rotate;
+	//const matrix& m_rotate_in = *func_parameters->m_rotate;
+	const __m128 (&m_rotate_in)[4] = *func_parameters->m_rotate;
 	archetype_data_& archetype_data = *func_parameters->archetype_data;
 
 	component_fetch_ fetch;
@@ -78,7 +79,7 @@ void systems_::environment_::update_lava(
 
 {
 	parameters_::environment_::update_lava_* func_parameters = (parameters_::environment_::update_lava_*)parameters;
-	const matrix& m_rotate_in = *func_parameters->m_rotate;
+	const __m128 (&m_rotate_in)[4] = *func_parameters->m_rotate;
 	archetype_data_& archetype_data = *func_parameters->archetype_data;
 
 	const float scale = 10.0f;

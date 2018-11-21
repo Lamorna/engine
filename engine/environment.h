@@ -21,12 +21,12 @@ struct parameters_::environment_ {
 
 	struct update_clouds_ {
 
-		const matrix* m_rotate;
+		const __m128 (*m_rotate)[4];
 		archetype_data_* archetype_data;
 	};
 	struct update_lava_ {
 
-		const matrix* m_rotate;
+		const __m128 (*m_rotate)[4];
 		archetype_data_* archetype_data;
 	};
 	struct update_doors_ {

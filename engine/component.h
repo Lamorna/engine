@@ -528,9 +528,9 @@ struct component_::sound_trigger_ {
 struct component_::power_ {
 
 	bool is_on;
-	quaternion_ q_null;
-	quaternion_ q_add_colour;
-	quaternion_ q_add_texture;
+	float4_ q_null;
+	float4_ q_add_colour;
+	float4_ q_add_texture;
 };
 struct component_::attached_ {
 

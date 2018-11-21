@@ -79,8 +79,8 @@ struct lightmap_manager_ {
 	__int32 map_nodes_TEMP[grid_::MAX_ENTRIES];
 	__int32 map_models_TEMP[grid_::MAX_ENTRIES];
 
-	CACHE_ALIGN_PROPER model_node_ model_nodes[grid_::NUM_NODES + 1][MAX_MODEL_NODES];
-	CACHE_ALIGN_PROPER active_node_handler_ active_node_handlers[thread_pool_::MAX_WORKER_THREADS];
+	CACHE_ALIGN model_node_ model_nodes[grid_::NUM_NODES + 1][MAX_MODEL_NODES];
+	CACHE_ALIGN active_node_handler_ active_node_handlers[thread_pool_::MAX_WORKER_THREADS];
 
 	texture_handler_ base_textures[MAX_BASE_TEXTURES];
 };

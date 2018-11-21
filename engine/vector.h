@@ -3,9 +3,9 @@
 
 #include "master.h"
 
-#define	CACHE_LINE		16
-#define	CACHE_ALIGN		_declspec( align( CACHE_LINE ) )
-#define CACHE_ALIGN_PROPER __declspec( align(64))
+#define	CACHE_SIZE	64
+#define CACHE_ALIGN __declspec(align(CACHE_SIZE))
+#define	SIMD_ALIGN	_declspec(align(16))
 #define VM_INLINE __forceinline
 
 
@@ -25,21 +25,6 @@ static const float fixed_scale_real = float(fixed_scale);
 static const float r_fixed_scale_real = 1.0f / fixed_scale_real;
 
 //======================================================================
-
-// Tom Forsyth
-
-//typedef signed		__int8 sint8_;
-//typedef unsigned	__int8 uint8_;
-//typedef signed		__int16 sint16_;
-//typedef unsigned	__int16 uint16_;
-//typedef signed		__int32 sint32_;
-//typedef unsigned	__int32 uint32_;
-//typedef signed		__int64 sint64_;
-//typedef unsigned	__int64 uint64_;
-
-//======================================================================
-
-
 
 enum lamorna_ {
 
@@ -123,12 +108,6 @@ union int4_ {
 	__int32 i[4];
 };
 
-typedef float4_ quaternion_;
-
-typedef __m128 matrix[4];
-typedef __m128 quaternion;
-typedef __m128i matrix_int[4];
-
 union vertex4_ {
 
 	struct {
@@ -136,7 +115,6 @@ union vertex4_ {
 	};
 	__m128 v[3];
 };
-
 
 static VM_INLINE  float3_ operator + (float3_ a, float3_ b){
 
@@ -664,34 +642,8 @@ static __m128i const load_mask[] = {
 
 };
 
-//==============================================================================================
-
-//static inline __int32 blend_int(__int32 a, __int32 b, __int32 boolean){
-//
-//	return (a & -boolean) | (b & -(boolean ^ 0x1));
-//}
-//static inline __int64 blend_int(__int64 a, __int64 b, __int64 boolean) {
-//
-//	return (a & -boolean) | (b & -(boolean ^ 0x1));
-//}
-
-//static inline float blend(const float a, const float b, const bool boolean){
-//
-//	return store_s(blend(load_s(a), load_s(b), load_s(boolean) != set_zero_si128()));
-//}
-
-//==============================================================================================
-
-static __m128i const X_Mask =		set( ~0x0, 0x0, 0x0, 0x0	);
-static __m128i const Y_Mask =		set( 0x0, ~0x0, 0x0, 0x0	);
-static __m128i const Z_Mask =		set( 0x0, 0x0, ~0x0, 0x0	);
-static __m128i const XY_Mask =		set( ~0x0, ~0x0, 0x0, 0x0	);
-static __m128i const XYZ_Mask =	set( ~0x0, ~0x0, ~0x0, 0x0	);
-static __m128i const W_Mask =		set( 0x0, 0x0, 0x0, ~0x0	);
-
-static const float SIGN_BIT_FLOAT = 0x80000000;
-static __m128i const SIGN_BIT = broadcast(load_s(0x80000000));
-
+static const float SIGN_BIT = 0x80000000;
+static __m128i const SIGN_BIT_4 = set_all((__int32)SIGN_BIT);
 
 static __m128 const Unit_Axis[4] = {
 
@@ -711,49 +663,42 @@ static __m128i const Axis_Mask[4] = {
 
 //======================================================================
 
-
-
-//======================================================================
-
-
-
 //------------------------------------------------------------------------
 // matrix operators
 //------------------------------------------------------------------------
 
-static void Matrix_X_Matrix(const matrix a, const matrix b, matrix out){
+static void Matrix_X_Matrix(const __m128 a[4], const __m128 b[4], __m128 out[4]){
 
 	for (__int32 i_row = 0; i_row < 4; i_row++) {
-		out[i_row] = set_zero();
-		__m128 temp = b[i_row];
-		for (__int32 i_axis = X; i_axis <= W; i_axis++) {
-			out[i_row] += a[i_axis] * broadcast(temp);
-			temp = rotate_right(temp);
-		}
+
+		out[i_row]  = a[X] * _mm_shuffle_ps(b[i_row], b[i_row], 0x0);
+		out[i_row] += a[Y] * _mm_shuffle_ps(b[i_row], b[i_row], 0x55);
+		out[i_row] += a[Z] * _mm_shuffle_ps(b[i_row], b[i_row], 0xaa);
+		out[i_row] += a[W] * _mm_shuffle_ps(b[i_row], b[i_row], 0xff);
 	}
 }
 
 static void Matrix_X_Matrix(const matrix_& a, const matrix_& b, matrix_& out) {
 
 	for (__int32 i_row = 0; i_row < 4; i_row++) {
-		__m128 sum = set_zero();
-		__m128 temp = load_u(b[i_row].f);
-		for (__int32 i_axis = X; i_axis <= W; i_axis++) {
-			sum += load_u(a[i_axis].f) * broadcast(temp);
-			temp = rotate_right(temp);
-		}
+
+		__m128 sum = load_u(a[X].f) * set_all(b[i_row].x);
+		sum += load_u(a[Y].f) * set_all(b[i_row].y);
+		sum += load_u(a[Z].f) * set_all(b[i_row].z);
+		sum += load_u(a[W].f) * set_all(b[i_row].w);
+
 		store_u(sum, out[i_row].f);
 	}
 }
 
-static __m128 Vector_X_Matrix(const __m128& a, const matrix b) {
+static __m128 Vector_X_Matrix(const __m128 a, const __m128 b[4]) {
 
-	__m128 out = set_zero();
-	__m128 temp = a;
-	for (__int32 i_axis = X; i_axis <= W; i_axis++) {
-		out += b[i_axis] * broadcast(temp);
-		temp = rotate_right(temp);
-	}
+	__m128 out;
+	out  = b[X] * _mm_shuffle_ps(a, a, 0x0);
+	out += b[Y] * _mm_shuffle_ps(a, a, 0x55);
+	out += b[Z] * _mm_shuffle_ps(a, a, 0xaa);
+	out += b[W] * _mm_shuffle_ps(a, a, 0xff);
+
 	return out;
 }
 
@@ -791,29 +736,11 @@ static void Vector_X_Matrix(const float4_& in, const matrix_& m, float4_& out) {
 	store_u(result, out.f);
 }
 
-
-
 //------------------------------------------------------------------------
-// matrix4 functions
+// matrix functions
 //------------------------------------------------------------------------
-static void Initialise(matrix in) {
 
-	union temp {
-		__m128 f;
-		__m128i i;
-	};
-
-	temp row4;
-	row4.f = set_all(1.0f);
-	row4.i = _mm_slli_si128(row4.i, 4 * 3);
-	row4.i = _mm_srli_si128(row4.i, 4 * 3);
-	for (__int32 i = 0; i < 4; i++) {
-		in[i] = row4.f;
-		row4.f = rotate_left(row4.f);
-	}
-}
-
-static void Transpose(matrix in) {
+static void Transpose(__m128 in[4]) {
 
 	__m128 temp[4];
 	temp[0] = interleave_lo(in[0], in[2]);			// x0 x2 y0 y2
@@ -827,7 +754,7 @@ static void Transpose(matrix in) {
 	in[3] = interleave_hi(temp[2], temp[3]);		// w0 w1 w2 w3
 }
 
-static void Transpose(const matrix in, matrix out) {
+static void Transpose(const __m128 in[4], __m128 out[4]) {
 
 	__m128 temp[4];
 	temp[0] = interleave_lo(in[0], in[2]);			// x0 x2 y0 y2
@@ -870,7 +797,7 @@ static void Transpose(const matrix_ in, matrix_ out) {
 
 
 
-static void Transpose(matrix_int in) {
+static void Transpose(__m128i in[4]) {
 
 	__m128i temp[4];
 	temp[0] = interleave_lo(in[0], in[2]);			// x0 x2 y0 y2
@@ -884,7 +811,7 @@ static void Transpose(matrix_int in) {
 	in[3] = interleave_hi(temp[2], temp[3]);		// w0 w1 w2 w3
 }
 
-static void Transpose(const matrix_int in, matrix_int out) {
+static void Transpose(const __m128i in[4], __m128i out[4]) {
 
 	__m128i temp[4];
 	temp[0] = interleave_lo(in[0], in[2]);			// x0 x2 y0 y2

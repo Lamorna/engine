@@ -293,9 +293,9 @@ void systems_::monster_::face_target(
 				model_space_update[i_entity].q_rotate.f[i_axis] = is_no_target ? model_space_update[i_entity].q_rotate.f[i_axis] : q_out.f[i_axis];
 			}
 
-			matrix temp;
+			__m128 temp[4];
 			temp[X] = load_u(model_space_update[i_entity].q_rotate.f);
-			matrix out_m[4];
+			__m128 out_m[4][4];
 			Quaternion_To_Matrix(temp, out_m);
 
 			for (__int32 i = 0; i < 4; i++) {

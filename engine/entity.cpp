@@ -518,11 +518,11 @@ void systems_::entity_::update_global_matrices(
 		ring_axis_angle += (Ring_Rotation_Velocity * time_elapsed);
 		totem_axis_angle += (Totem_Rotation_Velocity * time_elapsed);
 
-		matrix quaternion_m;
+		__m128 quaternion_m[4];
 		quaternion_m[X] = Axis_Angle_To_Quaternion(axis_angle);
 		quaternion_m[Y] = Axis_Angle_To_Quaternion(ring_axis_angle);
 		quaternion_m[Z] = Axis_Angle_To_Quaternion(totem_axis_angle);
-		matrix out[4];
+		__m128 out[4][4];
 		Quaternion_To_Matrix(quaternion_m, out);
 
 		for (__int32 i = 0; i < 4; i++) {
@@ -1369,7 +1369,7 @@ void systems_::entity_::update_texture_space_transform(
 			Normalise_Quaternion(texture_space[i_entity].q_rotate);
 			Quaternion_To_Matrix(texture_space[i_entity].q_rotate, temp);
 
-			matrix m_rotate_z;
+			__m128 m_rotate_z[4];
 			m_rotate_z[X] = load_u(temp[X].f);
 			m_rotate_z[Y] = load_u(temp[Y].f);
 			m_rotate_z[Z] = load_u(temp[Z].f);
@@ -1377,7 +1377,7 @@ void systems_::entity_::update_texture_space_transform(
 
 			const __m128 one = set_all(1.0f);
 			__m128 rotated_period = Vector_X_Matrix(period, m_rotate_z);
-			matrix displacement;
+			__m128 displacement[4];
 			for (__int32 i = 0; i < 4; i++) {
 				displacement[i] = rotated_period;
 			}
@@ -1385,11 +1385,16 @@ void systems_::entity_::update_texture_space_transform(
 			displacement[Y] = one - abs(displacement[Y]);
 			//displacement[Y] = abs(displacement[Y]);
 
-			matrix tex_transform;
-			Initialise(tex_transform);
+			__m128 tex_transform[4];
+
+			tex_transform[X] = Unit_Axis[X];
+			tex_transform[Y] = Unit_Axis[Y];
+			tex_transform[Z] = Unit_Axis[Z];
+			tex_transform[W] = Unit_Axis[W];
+
 			tex_transform[X] *= displacement[Y];
 			tex_transform[Y] *= displacement[Y];
-			tex_transform[W] |= ((one - displacement[Y]) * half) & (X_Mask | Y_Mask);
+			tex_transform[W] |= ((one - displacement[Y]) * half) & (Axis_Mask[X] | Axis_Mask[Y]);
 
 			store_u(tex_transform[X], texture_space[i_entity].m_rotate[X].f);
 			store_u(tex_transform[Y], texture_space[i_entity].m_rotate[Y].f);

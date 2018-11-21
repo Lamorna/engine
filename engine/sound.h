@@ -68,7 +68,7 @@ struct sound_buffer_ {
 		BUFFER_SIZE_REAL = BUFFER_SIZE_BYTES / 4,
 	};
 
-	CACHE_ALIGN float samples[BUFFER_SIZE_REAL];
+	SIMD_ALIGN float samples[BUFFER_SIZE_REAL];
 
 };
 
